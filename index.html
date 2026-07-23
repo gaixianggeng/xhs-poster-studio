@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="一个零依赖、支持多种尺寸、列表预览和高清导出的小红书封面生成器。"
+    />
+    <title>小红书封面生成器</title>
+    <link rel="stylesheet" href="./styles.css?v=20260723-2" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <div>
+          <p class="eyebrow">POSTER STUDIO</p>
+          <h1>小红书封面生成器</h1>
+          <p class="header-copy">改文案、换尺寸，实时预览发布效果并导出高清 PNG。</p>
+        </div>
+        <div class="header-actions">
+          <button class="button button-secondary" id="resetButton" type="button">恢复示例</button>
+          <button class="button button-primary" id="downloadButton" type="button">
+            导出 PNG
+          </button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <aside class="control-panel" aria-label="海报编辑器">
+          <section class="control-section">
+            <div class="section-heading">
+              <span class="step">01</span>
+              <div>
+                <h2>文案</h2>
+                <p>在需要换行的位置按回车。</p>
+              </div>
+            </div>
+
+            <div class="field-grid field-grid-two">
+              <label class="field">
+                <span>左上角</span>
+                <input id="topLeft" name="topLeft" type="text" placeholder="可留空" />
+              </label>
+              <label class="field">
+                <span>右上角</span>
+                <input id="topRight" name="topRight" type="text" />
+              </label>
+            </div>
+
+            <label class="field">
+              <span>上方副标题</span>
+              <textarea id="upperText" name="upperText" rows="3"></textarea>
+            </label>
+
+            <label class="field">
+              <span>主标题</span>
+              <textarea id="titleText" name="titleText" rows="3"></textarea>
+            </label>
+
+            <label class="field">
+              <span>下方副标题</span>
+              <textarea id="subtitleText" name="subtitleText" rows="2"></textarea>
+            </label>
+
+            <div class="footer-field-grid">
+              <label class="field">
+                <span>底部文字</span>
+                <input id="footerText" name="footerText" type="text" />
+              </label>
+              <label class="field">
+                <span>对齐方式</span>
+                <select id="footerAlign" name="footerAlign">
+                  <option value="left">左对齐</option>
+                  <option value="center">居中</option>
+                  <option value="right">右对齐</option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section class="control-section">
+            <div class="section-heading">
+              <span class="step">02</span>
+              <div>
+                <h2>颜色</h2>
+                <p>支持颜色选择器和 HEX 色值。</p>
+              </div>
+            </div>
+
+            <div class="theme-list" aria-label="配色预设">
+              <button class="theme-chip is-active" data-theme="codex" type="button">
+                <span style="--chip-a: #021f22; --chip-b: #f65219"></span>经典
+              </button>
+              <button class="theme-chip" data-theme="blue" type="button">
+                <span style="--chip-a: #101c42; --chip-b: #a9c5ff"></span>蓝调
+              </button>
+              <button class="theme-chip" data-theme="lime" type="button">
+                <span style="--chip-a: #151b16; --chip-b: #c8ff62"></span>青柠
+              </button>
+              <button class="theme-chip" data-theme="paper" type="button">
+                <span style="--chip-a: #e8e3d6; --chip-b: #fffaf0"></span>纸白
+              </button>
+            </div>
+
+            <div class="color-grid">
+              <div class="color-field">
+                <span>画布背景</span>
+                <div class="color-inputs">
+                  <input aria-label="选择画布背景颜色" data-color="backgroundColor" type="color" />
+                  <input aria-label="输入画布背景色值" data-hex="backgroundColor" type="text" />
+                </div>
+              </div>
+              <div class="color-field">
+                <span>卡片颜色</span>
+                <div class="color-inputs">
+                  <input aria-label="选择卡片颜色" data-color="cardColor" type="color" />
+                  <input aria-label="输入卡片色值" data-hex="cardColor" type="text" />
+                </div>
+              </div>
+              <div class="color-field">
+                <span>文字颜色</span>
+                <div class="color-inputs">
+                  <input aria-label="选择文字颜色" data-color="textColor" type="color" />
+                  <input aria-label="输入文字色值" data-hex="textColor" type="text" />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="control-section">
+            <div class="section-heading">
+              <span class="step">03</span>
+              <div>
+                <h2>画布与版式</h2>
+                <p>优先选择常用尺寸，也可以输入自定义宽高。</p>
+              </div>
+            </div>
+
+            <div class="size-preset-list" aria-label="小红书封面尺寸预设">
+              <button class="size-preset is-active" data-width="1080" data-height="1440" type="button">
+                <strong>竖版 3:4</strong>
+                <span>1080 × 1440 · 推荐</span>
+              </button>
+              <button class="size-preset" data-width="1080" data-height="1350" type="button">
+                <strong>竖版 4:5</strong>
+                <span>1080 × 1350</span>
+              </button>
+              <button class="size-preset" data-width="1080" data-height="1080" type="button">
+                <strong>方形 1:1</strong>
+                <span>1080 × 1080</span>
+              </button>
+            </div>
+
+            <div class="field-grid field-grid-two canvas-size-grid">
+              <label class="field">
+                <span>画布宽度</span>
+                <div class="number-field">
+                  <input id="canvasWidth" name="canvasWidth" min="320" max="4096" step="10" type="number" />
+                  <span>px</span>
+                </div>
+              </label>
+              <label class="field">
+                <span>画布高度</span>
+                <div class="number-field">
+                  <input id="canvasHeight" name="canvasHeight" min="320" max="4096" step="10" type="number" />
+                  <span>px</span>
+                </div>
+              </label>
+            </div>
+
+            <label class="field">
+              <span>字体风格</span>
+              <select id="fontFamily" name="fontFamily">
+                <option value="system">系统黑体</option>
+                <option value="grotesk">现代 Grotesk</option>
+                <option value="rounded">圆体</option>
+              </select>
+            </label>
+
+            <div class="range-list">
+              <label class="range-field">
+                <span>主标题字号 <output data-output="mainSize"></output></span>
+                <input id="mainSize" min="130" max="210" step="2" type="range" />
+              </label>
+              <label class="range-field">
+                <span>内容间距 <output data-output="groupGap"></output></span>
+                <input id="groupGap" min="48" max="130" step="2" type="range" />
+              </label>
+              <label class="range-field">
+                <span>整体上下位置 <output data-output="verticalOffset"></output></span>
+                <input id="verticalOffset" min="-140" max="140" step="4" type="range" />
+              </label>
+            </div>
+
+            <details class="advanced-settings">
+              <summary>更多版式设置</summary>
+              <div class="range-list advanced-body">
+                <label class="range-field">
+                  <span>上方副标题字号 <output data-output="upperSize"></output></span>
+                  <input id="upperSize" min="26" max="64" step="2" type="range" />
+                </label>
+                <label class="range-field">
+                  <span>下方副标题字号 <output data-output="subtitleSize"></output></span>
+                  <input id="subtitleSize" min="26" max="58" step="2" type="range" />
+                </label>
+                <label class="range-field">
+                  <span>卡片宽度 <output data-output="cardWidth"></output></span>
+                  <input id="cardWidth" min="70" max="90" step="1" type="range" />
+                </label>
+                <label class="range-field">
+                  <span>卡片高度 <output data-output="cardHeight"></output></span>
+                  <input id="cardHeight" min="78" max="92" step="1" type="range" />
+                </label>
+                <label class="range-field">
+                  <span>卡片圆角 <output data-output="cornerRadius"></output></span>
+                  <input id="cornerRadius" min="24" max="110" step="2" type="range" />
+                </label>
+                <label class="range-field">
+                  <span>左右安全边距 <output data-output="sidePadding"></output></span>
+                  <input id="sidePadding" min="36" max="96" step="2" type="range" />
+                </label>
+              </div>
+            </details>
+          </section>
+        </aside>
+
+        <section class="preview-shell" aria-labelledby="previewTitle">
+          <div class="preview-toolbar">
+            <div>
+              <p class="preview-kicker">LIVE PREVIEW</p>
+              <h2 id="previewTitle">实时预览</h2>
+            </div>
+            <div class="preview-toolbar-actions">
+              <div class="preview-mode-switch" role="tablist" aria-label="预览方式">
+                <button
+                  class="preview-mode-button is-active"
+                  data-preview-mode="poster"
+                  type="button"
+                  role="tab"
+                  aria-selected="true"
+                >
+                  海报
+                </button>
+                <button
+                  class="preview-mode-button"
+                  data-preview-mode="feed"
+                  type="button"
+                  role="tab"
+                  aria-selected="false"
+                >
+                  列表
+                </button>
+              </div>
+              <span class="ratio-badge" id="ratioBadge">1080 × 1440 · 3:4</span>
+            </div>
+          </div>
+          <div class="canvas-stage" data-preview-panel="poster">
+            <canvas id="posterCanvas" width="1080" height="1440">
+              当前浏览器不支持 Canvas，请升级浏览器后使用。
+            </canvas>
+          </div>
+          <div class="feed-stage" data-preview-panel="feed" hidden>
+            <div class="feed-phone" aria-label="小红书双列列表效果预览">
+              <div class="feed-header">
+                <span>关注</span>
+                <strong>发现</strong>
+                <span>附近</span>
+              </div>
+              <div class="feed-grid">
+                <article class="feed-card feed-card-current">
+                  <canvas id="feedPosterCanvas" width="360" height="480"></canvas>
+                  <h3 id="feedPosterTitle">Codex 远程 又快又稳？</h3>
+                  <div class="feed-meta">
+                    <span class="feed-avatar feed-avatar-current">你</span>
+                    <span>你的账号</span>
+                    <span class="feed-like">♡</span>
+                  </div>
+                </article>
+                <article class="feed-card feed-card-placeholder">
+                  <div class="placeholder-cover placeholder-cover-a"><span>IDEA</span></div>
+                  <div class="placeholder-title placeholder-title-long"></div>
+                  <div class="placeholder-title"></div>
+                  <div class="feed-meta">
+                    <span class="feed-avatar"></span>
+                    <span class="placeholder-author"></span>
+                    <span class="feed-like">♡</span>
+                  </div>
+                </article>
+                <article class="feed-card feed-card-placeholder">
+                  <div class="placeholder-cover placeholder-cover-b"><span>MAKE</span></div>
+                  <div class="placeholder-title placeholder-title-long"></div>
+                  <div class="feed-meta">
+                    <span class="feed-avatar"></span>
+                    <span class="placeholder-author"></span>
+                    <span class="feed-like">♡</span>
+                  </div>
+                </article>
+                <article class="feed-card feed-card-placeholder">
+                  <div class="placeholder-cover placeholder-cover-c"><span>WORK</span></div>
+                  <div class="placeholder-title placeholder-title-long"></div>
+                  <div class="placeholder-title"></div>
+                  <div class="feed-meta">
+                    <span class="feed-avatar"></span>
+                    <span class="placeholder-author"></span>
+                    <span class="feed-like">♡</span>
+                  </div>
+                </article>
+              </div>
+            </div>
+          </div>
+          <p class="preview-note">所有设置只保存在当前浏览器，不会上传文案或图片。</p>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="./app.js?v=20260723-2" defer></script>
+  </body>
+</html>

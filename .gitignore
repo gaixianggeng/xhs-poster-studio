@@ -1,0 +1,11 @@
+.DS_Store
+
+# 本地配置与秘密
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# 临时部署文件
+.deploy-tmp/
