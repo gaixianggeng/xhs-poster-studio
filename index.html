@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="一个零依赖、支持多种尺寸、列表预览和高清导出的小红书封面生成器。"
+      content="一个零依赖、适配小红书 3:4 图文封面、支持列表预览和高清导出的封面生成器。"
     />
     <title>小红书封面生成器</title>
-    <link rel="stylesheet" href="./styles.css?v=20260723-2" />
+    <link rel="stylesheet" href="./styles.css?v=20260724-15" />
   </head>
   <body>
     <div class="app-shell">
@@ -16,7 +16,9 @@
         <div>
           <p class="eyebrow">POSTER STUDIO</p>
           <h1>小红书封面生成器</h1>
-          <p class="header-copy">改文案、换尺寸，实时预览发布效果并导出高清 PNG。</p>
+          <p class="header-copy">
+            先选笔记类型，再填文案和照片；用统一品牌系统生成不同内容封面。
+          </p>
         </div>
         <div class="header-actions">
           <button class="button button-secondary" id="resetButton" type="button">恢复示例</button>
@@ -32,8 +34,83 @@
             <div class="section-heading">
               <span class="step">01</span>
               <div>
-                <h2>文案</h2>
-                <p>在需要换行的位置按回车。</p>
+                <h2>选择笔记类型</h2>
+                <p>四种结构共用同一品牌骨架，按内容目的切换。</p>
+              </div>
+            </div>
+
+            <div class="note-type-grid" aria-label="笔记类型">
+              <button
+                class="note-type-button is-active"
+                data-note-type="experience"
+                type="button"
+                aria-pressed="true"
+              >
+                <span class="note-type-preview preview-experience" aria-hidden="true">
+                  <i></i><b></b><b></b><em></em>
+                </span>
+                <span><strong>经验 / 观点</strong><small>纯文字 · 日常主力</small></span>
+              </button>
+              <button
+                class="note-type-button"
+                data-note-type="tutorial"
+                type="button"
+                aria-pressed="false"
+              >
+                <span class="note-type-preview preview-tutorial" aria-hidden="true">
+                  <i></i><b></b><b></b><em></em>
+                </span>
+                <span><strong>教程 / 清单</strong><small>步骤证据 · 收藏导向</small></span>
+              </button>
+              <button
+                class="note-type-button"
+                data-note-type="product"
+                type="button"
+                aria-pressed="false"
+              >
+                <span class="note-type-preview preview-product" aria-hidden="true">
+                  <i></i><b></b><b></b><em></em>
+                </span>
+                <span><strong>产品 / 实测</strong><small>大图优先 · 重点内容</small></span>
+              </button>
+              <button
+                class="note-type-button"
+                data-note-type="deepDive"
+                type="button"
+                aria-pressed="false"
+              >
+                <span class="note-type-preview preview-deep-dive" aria-hidden="true">
+                  <i></i><b></b><b></b><em></em>
+                </span>
+                <span><strong>深度文章</strong><small>编辑博客 · 专题复盘</small></span>
+              </button>
+            </div>
+
+            <div class="brand-mode-card">
+              <div>
+                <strong id="styleStatus">「经验 / 观点」品牌风格已锁定</strong>
+                <p id="styleDescription">
+                  纯文字 · 日常主力。只需编辑文案和照片，主页视觉会自动保持一致。
+                </p>
+              </div>
+              <button
+                class="custom-style-button"
+                id="customStyleButton"
+                type="button"
+                aria-controls="customStyleControls"
+                aria-expanded="false"
+              >
+                高级微调
+              </button>
+            </div>
+          </section>
+
+          <section class="control-section">
+            <div class="section-heading">
+              <span class="step">02</span>
+              <div>
+                <h2>填写内容</h2>
+                <p>主标题尽量控制在两行；在需要换行的位置按回车。</p>
               </div>
             </div>
 
@@ -66,7 +143,7 @@
             <div class="footer-field-grid">
               <label class="field">
                 <span>底部文字</span>
-                <input id="footerText" name="footerText" type="text" />
+                <input id="footerText" name="footerText" type="text" placeholder="可留空" />
               </label>
               <label class="field">
                 <span>对齐方式</span>
@@ -77,52 +154,81 @@
                 </select>
               </label>
             </div>
-          </section>
 
-          <section class="control-section">
-            <div class="section-heading">
-              <span class="step">02</span>
-              <div>
-                <h2>颜色</h2>
-                <p>支持颜色选择器和 HEX 色值。</p>
-              </div>
-            </div>
-
-            <div class="theme-list" aria-label="配色预设">
-              <button class="theme-chip is-active" data-theme="codex" type="button">
-                <span style="--chip-a: #021f22; --chip-b: #f65219"></span>经典
-              </button>
-              <button class="theme-chip" data-theme="blue" type="button">
-                <span style="--chip-a: #101c42; --chip-b: #a9c5ff"></span>蓝调
-              </button>
-              <button class="theme-chip" data-theme="lime" type="button">
-                <span style="--chip-a: #151b16; --chip-b: #c8ff62"></span>青柠
-              </button>
-              <button class="theme-chip" data-theme="paper" type="button">
-                <span style="--chip-a: #e8e3d6; --chip-b: #fffaf0"></span>纸白
-              </button>
-            </div>
-
-            <div class="color-grid">
-              <div class="color-field">
-                <span>画布背景</span>
-                <div class="color-inputs">
-                  <input aria-label="选择画布背景颜色" data-color="backgroundColor" type="color" />
-                  <input aria-label="输入画布背景色值" data-hex="backgroundColor" type="text" />
+            <div class="photo-upload-card">
+              <div class="photo-upload-heading">
+                <div>
+                  <strong>照片 / 截图（可选）</strong>
+                  <small id="photoPresetHint">默认纯文字；上传照片后使用底部证据区。</small>
                 </div>
+                <span>仅本地</span>
               </div>
-              <div class="color-field">
-                <span>卡片颜色</span>
-                <div class="color-inputs">
-                  <input aria-label="选择卡片颜色" data-color="cardColor" type="color" />
-                  <input aria-label="输入卡片色值" data-hex="cardColor" type="text" />
+              <div
+                class="photo-layout-picker"
+                id="photoLayoutPicker"
+                role="group"
+                aria-label="照片版式"
+                hidden
+              >
+                <button
+                  class="photo-layout-button is-active"
+                  data-photo-layout="editorial"
+                  type="button"
+                  aria-pressed="true"
+                >
+                  <strong>文字海报</strong>
+                  <span>标题优先</span>
+                </button>
+                <button
+                  class="photo-layout-button"
+                  data-photo-layout="album"
+                  type="button"
+                  aria-pressed="false"
+                >
+                  <strong>专辑焦点</strong>
+                  <span>照片优先</span>
+                </button>
+              </div>
+              <input
+                aria-label="选择本地照片"
+                class="photo-input"
+                id="photoInput"
+                type="file"
+                accept="image/*"
+              />
+              <div class="photo-upload-meta">
+                <span id="photoStatus" aria-live="polite">未选择照片，刷新后需要重新选择</span>
+                <button class="photo-remove-button" id="removePhotoButton" type="button" hidden>
+                  移除
+                </button>
+              </div>
+              <div class="photo-transform-controls" id="photoTransformControls" hidden>
+                <div class="photo-transform-summary">
+                  <span id="photoGeometryStatus">位置与尺寸</span>
+                  <button id="resetPhotoFrameButton" type="button">重置照片</button>
                 </div>
-              </div>
-              <div class="color-field">
-                <span>文字颜色</span>
-                <div class="color-inputs">
-                  <input aria-label="选择文字颜色" data-color="textColor" type="color" />
-                  <input aria-label="输入文字色值" data-hex="textColor" type="text" />
+                <p id="photoTransformHelp">
+                  拖动照片区域；接近画布中心会显示参考线并吸附。拖动四角调整大小。
+                </p>
+                <div class="photo-edit-mode-picker" role="group" aria-label="照片编辑模式">
+                  <button
+                    class="photo-edit-mode-button is-active"
+                    data-photo-edit-mode="frame"
+                    type="button"
+                    aria-pressed="true"
+                  >
+                    <strong>调整区域</strong>
+                    <span>移动与缩放</span>
+                  </button>
+                  <button
+                    class="photo-edit-mode-button"
+                    data-photo-edit-mode="crop"
+                    type="button"
+                    aria-pressed="false"
+                  >
+                    <strong>调整取景</strong>
+                    <span>拖动照片内容</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -132,96 +238,240 @@
             <div class="section-heading">
               <span class="step">03</span>
               <div>
-                <h2>画布与版式</h2>
-                <p>优先选择常用尺寸，也可以输入自定义宽高。</p>
+                <h2>品牌与版式</h2>
+                <p>默认保持统一；只有确实需要时再覆盖单篇样式。</p>
               </div>
             </div>
 
-            <div class="size-preset-list" aria-label="小红书封面尺寸预设">
-              <button class="size-preset is-active" data-width="1080" data-height="1440" type="button">
-                <strong>竖版 3:4</strong>
-                <span>1080 × 1440 · 推荐</span>
-              </button>
-              <button class="size-preset" data-width="1080" data-height="1350" type="button">
-                <strong>竖版 4:5</strong>
-                <span>1080 × 1350</span>
-              </button>
-              <button class="size-preset" data-width="1080" data-height="1080" type="button">
-                <strong>方形 1:1</strong>
-                <span>1080 × 1080</span>
-              </button>
+            <div class="platform-format-card" aria-label="小红书图文封面格式">
+              <div class="platform-format-heading">
+                <strong>小红书图文封面</strong>
+                <span>固定规格</span>
+              </div>
+              <p><strong>1080 × 1440 px</strong><span>3:4 竖版</span></p>
+              <small
+                >卡片固定为 84% 宽、88% 高和 52 px 圆角；四种风格的外轮廓始终一致。</small
+              >
             </div>
 
-            <div class="field-grid field-grid-two canvas-size-grid">
-              <label class="field">
-                <span>画布宽度</span>
-                <div class="number-field">
-                  <input id="canvasWidth" name="canvasWidth" min="320" max="4096" step="10" type="number" />
-                  <span>px</span>
+            <div class="quick-style-section">
+              <div class="quick-style-heading">
+                <div>
+                  <strong>字体类型</strong>
+                  <span>默认按笔记类型匹配，也可覆盖当前单篇</span>
                 </div>
-              </label>
-              <label class="field">
-                <span>画布高度</span>
-                <div class="number-field">
-                  <input id="canvasHeight" name="canvasHeight" min="320" max="4096" step="10" type="number" />
-                  <span>px</span>
+              </div>
+              <aside class="font-guidance" aria-label="字体使用建议">
+                <strong>默认建议</strong>
+                <p>
+                  <span>经验、教程、产品：现代黑体</span>
+                  <span>深度文章：衬线主标题＋现代黑体正文</span>
+                </p>
+                <small>圆体、手写体只建议偶尔用于单篇变化，避免主页字体过多。</small>
+              </aside>
+              <div class="font-preset-grid" aria-label="字体类型">
+                <button
+                  class="font-preset-button font-preview-system"
+                  data-font-preset="system"
+                  type="button"
+                  aria-pressed="false"
+                >
+                  <b>Aa 字</b><span>标准黑体</span>
+                </button>
+                <button
+                  class="font-preset-button is-active font-preview-grotesk"
+                  data-font-preset="grotesk"
+                  type="button"
+                  aria-pressed="true"
+                >
+                  <b>Aa 字</b><span>现代黑体</span>
+                </button>
+                <button
+                  class="font-preset-button font-preview-rounded"
+                  data-font-preset="rounded"
+                  type="button"
+                  aria-pressed="false"
+                >
+                  <b>Aa 字</b><span>圆润标题</span>
+                </button>
+                <button
+                  class="font-preset-button font-preview-handwritten"
+                  data-font-preset="handwritten"
+                  type="button"
+                  aria-pressed="false"
+                >
+                  <b>Aa 字</b><span>自然手写</span>
+                </button>
+                <button
+                  class="font-preset-button font-preview-editorial"
+                  data-font-preset="editorial"
+                  type="button"
+                  aria-pressed="false"
+                >
+                  <b>Aa 字</b><span>编辑衬线</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="quick-style-section">
+              <div class="quick-style-heading">
+                <div>
+                  <strong>配色方案</strong>
+                  <span>原有 10 组完整保留，新增 6 组低噪配色</span>
                 </div>
-              </label>
+              </div>
+              <div class="theme-list" aria-label="配色预设">
+                <button class="theme-chip" data-theme="ivory" type="button">
+                  <span style="--chip-a: #173027; --chip-b: #f0e6cf"></span>米白绿
+                </button>
+                <button class="theme-chip" data-theme="midnight" type="button">
+                  <span style="--chip-a: #0e1733; --chip-b: #a9c4f5"></span>午夜蓝
+                </button>
+                <button class="theme-chip" data-theme="codex" type="button">
+                  <span style="--chip-a: #071f20; --chip-b: #f2552c"></span>珊瑚橙
+                </button>
+                <button class="theme-chip" data-theme="mustard" type="button">
+                  <span style="--chip-a: #1b1a17; --chip-b: #e1b84b"></span>芥末黄
+                </button>
+                <button class="theme-chip" data-theme="burgundy" type="button">
+                  <span style="--chip-a: #2d161b; --chip-b: #d8b5a3"></span>粉棕红
+                </button>
+                <button class="theme-chip" data-theme="plumButter" type="button">
+                  <span style="--chip-a: #24182f; --chip-b: #f0d56a"></span>墨紫黄油
+                </button>
+                <button class="theme-chip" data-theme="cobaltPeach" type="button">
+                  <span style="--chip-a: #17254b; --chip-b: #f0b39a"></span>群青蜜桃
+                </button>
+                <button class="theme-chip" data-theme="cocoaSky" type="button">
+                  <span style="--chip-a: #2a1d20; --chip-b: #bfd8ec"></span>可可天蓝
+                </button>
+                <button class="theme-chip" data-theme="electricCyan" type="button">
+                  <span style="--chip-a: #031b20; --chip-b: #42ccd4"></span>电光青
+                </button>
+                <button class="theme-chip" data-theme="signalBlue" type="button">
+                  <span style="--chip-a: #07152d; --chip-b: #0867d9"></span>信号蓝
+                </button>
+                <button class="theme-chip" data-theme="paperBlack" type="button">
+                  <span style="--chip-a: #e6e0d5; --chip-b: #faf7f0"></span>黑字纸白
+                </button>
+                <button class="theme-chip" data-theme="forestSage" type="button">
+                  <span style="--chip-a: #142923; --chip-b: #bfd6c4"></span>森林鼠尾草
+                </button>
+                <button class="theme-chip" data-theme="plumRose" type="button">
+                  <span style="--chip-a: #2b1b29; --chip-b: #e5bbcd"></span>梅子玫瑰
+                </button>
+                <button class="theme-chip" data-theme="inkMint" type="button">
+                  <span style="--chip-a: #072826; --chip-b: #93d9c1"></span>墨绿薄荷
+                </button>
+                <button class="theme-chip" data-theme="graphiteSilver" type="button">
+                  <span style="--chip-a: #1d232b; --chip-b: #cdd3da"></span>石墨银
+                </button>
+                <button class="theme-chip" data-theme="coffeeCream" type="button">
+                  <span style="--chip-a: #2a211c; --chip-b: #e8d8c2"></span>咖啡奶油
+                </button>
+              </div>
             </div>
 
-            <label class="field">
-              <span>字体风格</span>
-              <select id="fontFamily" name="fontFamily">
-                <option value="system">系统黑体</option>
-                <option value="grotesk">现代 Grotesk</option>
-                <option value="rounded">圆体</option>
-              </select>
-            </label>
+            <div class="custom-style-controls" id="customStyleControls" hidden>
+              <div class="custom-style-heading">
+                <strong>高级微调</strong>
+                <span>精确色值、字体拆分与排版</span>
+              </div>
 
-            <div class="range-list">
-              <label class="range-field">
-                <span>主标题字号 <output data-output="mainSize"></output></span>
-                <input id="mainSize" min="130" max="210" step="2" type="range" />
-              </label>
-              <label class="range-field">
-                <span>内容间距 <output data-output="groupGap"></output></span>
-                <input id="groupGap" min="48" max="130" step="2" type="range" />
-              </label>
-              <label class="range-field">
-                <span>整体上下位置 <output data-output="verticalOffset"></output></span>
-                <input id="verticalOffset" min="-140" max="140" step="4" type="range" />
-              </label>
-            </div>
+              <div class="color-grid">
+                <div class="color-field">
+                  <span>画布背景</span>
+                  <div class="color-inputs">
+                    <input
+                      aria-label="选择画布背景颜色"
+                      data-color="backgroundColor"
+                      type="color"
+                    />
+                    <input
+                      aria-label="输入画布背景色值"
+                      data-hex="backgroundColor"
+                      type="text"
+                    />
+                  </div>
+                </div>
+                <div class="color-field">
+                  <span>卡片颜色</span>
+                  <div class="color-inputs">
+                    <input aria-label="选择卡片颜色" data-color="cardColor" type="color" />
+                    <input aria-label="输入卡片色值" data-hex="cardColor" type="text" />
+                  </div>
+                </div>
+                <div class="color-field">
+                  <span>文字颜色</span>
+                  <div class="color-inputs">
+                    <input aria-label="选择文字颜色" data-color="textColor" type="color" />
+                    <input aria-label="输入文字色值" data-hex="textColor" type="text" />
+                  </div>
+                </div>
+                <div class="color-field">
+                  <span>视觉区域</span>
+                  <div class="color-inputs">
+                    <input aria-label="选择视觉区域颜色" data-color="visualColor" type="color" />
+                    <input aria-label="输入视觉区域色值" data-hex="visualColor" type="text" />
+                  </div>
+                </div>
+              </div>
 
-            <details class="advanced-settings">
-              <summary>更多版式设置</summary>
-              <div class="range-list advanced-body">
-                <label class="range-field">
-                  <span>上方副标题字号 <output data-output="upperSize"></output></span>
-                  <input id="upperSize" min="26" max="64" step="2" type="range" />
+              <div class="field-grid field-grid-two">
+                <label class="field">
+                  <span>正文字体</span>
+                  <select id="fontFamily" name="fontFamily">
+                    <option value="system">系统黑体</option>
+                    <option value="grotesk">现代黑体</option>
+                    <option value="rounded">圆体</option>
+                    <option value="handwritten">自然手写</option>
+                  </select>
                 </label>
-                <label class="range-field">
-                  <span>下方副标题字号 <output data-output="subtitleSize"></output></span>
-                  <input id="subtitleSize" min="26" max="58" step="2" type="range" />
-                </label>
-                <label class="range-field">
-                  <span>卡片宽度 <output data-output="cardWidth"></output></span>
-                  <input id="cardWidth" min="70" max="90" step="1" type="range" />
-                </label>
-                <label class="range-field">
-                  <span>卡片高度 <output data-output="cardHeight"></output></span>
-                  <input id="cardHeight" min="78" max="92" step="1" type="range" />
-                </label>
-                <label class="range-field">
-                  <span>卡片圆角 <output data-output="cornerRadius"></output></span>
-                  <input id="cornerRadius" min="24" max="110" step="2" type="range" />
-                </label>
-                <label class="range-field">
-                  <span>左右安全边距 <output data-output="sidePadding"></output></span>
-                  <input id="sidePadding" min="36" max="96" step="2" type="range" />
+                <label class="field">
+                  <span>主标题字体</span>
+                  <select id="titleFontFamily" name="titleFontFamily">
+                    <option value="system">系统黑体</option>
+                    <option value="grotesk">现代黑体</option>
+                    <option value="rounded">圆体</option>
+                    <option value="handwritten">自然手写</option>
+                    <option value="serif">编辑衬线</option>
+                  </select>
                 </label>
               </div>
-            </details>
+
+              <div class="range-list">
+                <label class="range-field">
+                  <span>主标题字号 <output data-output="mainSize"></output></span>
+                  <input id="mainSize" min="60" max="210" step="2" type="range" />
+                </label>
+                <label class="range-field">
+                  <span>内容间距 <output data-output="groupGap"></output></span>
+                  <input id="groupGap" min="24" max="130" step="2" type="range" />
+                </label>
+                <label class="range-field">
+                  <span>整体上下位置 <output data-output="verticalOffset"></output></span>
+                  <input id="verticalOffset" min="-140" max="140" step="4" type="range" />
+                </label>
+              </div>
+
+              <details class="advanced-settings">
+                <summary>更多版式设置</summary>
+                <div class="range-list advanced-body">
+                  <label class="range-field">
+                    <span>上方副标题字号 <output data-output="upperSize"></output></span>
+                    <input id="upperSize" min="26" max="64" step="2" type="range" />
+                  </label>
+                  <label class="range-field">
+                    <span>下方副标题字号 <output data-output="subtitleSize"></output></span>
+                    <input id="subtitleSize" min="26" max="58" step="2" type="range" />
+                  </label>
+                  <label class="range-field">
+                    <span>左右安全边距 <output data-output="sidePadding"></output></span>
+                    <input id="sidePadding" min="36" max="96" step="2" type="range" />
+                  </label>
+                </div>
+              </details>
+            </div>
           </section>
         </aside>
 
@@ -249,25 +499,90 @@
                   role="tab"
                   aria-selected="false"
                 >
-                  列表
+                  主页
                 </button>
               </div>
-              <span class="ratio-badge" id="ratioBadge">1080 × 1440 · 3:4</span>
+              <span class="ratio-badge" id="ratioBadge">小红书图文 · 1080 × 1440 · 3:4</span>
             </div>
           </div>
           <div class="canvas-stage" data-preview-panel="poster">
-            <canvas id="posterCanvas" width="1080" height="1440">
-              当前浏览器不支持 Canvas，请升级浏览器后使用。
-            </canvas>
+            <div class="poster-canvas-wrap">
+              <canvas id="posterCanvas" width="1080" height="1440">
+                当前浏览器不支持 Canvas，请升级浏览器后使用。
+              </canvas>
+              <div
+                class="photo-alignment-guides"
+                id="photoAlignmentGuides"
+                aria-hidden="true"
+                hidden
+              >
+                <span class="photo-alignment-line photo-alignment-line-x"></span>
+                <span class="photo-alignment-line photo-alignment-line-y"></span>
+                <strong id="photoAlignmentLabel">正中心</strong>
+              </div>
+              <div
+                class="photo-transform-overlay"
+                id="photoTransformOverlay"
+                role="group"
+                tabindex="0"
+                aria-label="调整照片区域"
+                aria-describedby="photoTransformHelp"
+                hidden
+              >
+                <span class="photo-transform-label" id="photoTransformLabel">拖动区域</span>
+                <span
+                  class="photo-resize-handle photo-resize-handle-nw"
+                  data-resize-handle="nw"
+                  aria-hidden="true"
+                ></span>
+                <span
+                  class="photo-resize-handle photo-resize-handle-ne"
+                  data-resize-handle="ne"
+                  aria-hidden="true"
+                ></span>
+                <span
+                  class="photo-resize-handle photo-resize-handle-sw"
+                  data-resize-handle="sw"
+                  aria-hidden="true"
+                ></span>
+                <span
+                  class="photo-resize-handle photo-resize-handle-se"
+                  data-resize-handle="se"
+                  aria-hidden="true"
+                ></span>
+              </div>
+            </div>
           </div>
           <div class="feed-stage" data-preview-panel="feed" hidden>
+            <div class="history-preview-toolbar">
+              <div>
+                <strong>放进真实主页里检查</strong>
+                <span id="historyStatus" aria-live="polite"
+                  >可临时加入最多 8 张旧封面，不会保存或上传</span
+                >
+              </div>
+              <div class="history-preview-actions">
+                <label class="history-upload-button">
+                  加入旧封面
+                  <input
+                    id="historyCoverInput"
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    multiple
+                  />
+                </label>
+                <button class="history-clear-button" id="clearHistoryButton" type="button" hidden>
+                  清空
+                </button>
+              </div>
+            </div>
             <div class="feed-phone" aria-label="小红书双列列表效果预览">
               <div class="feed-header">
                 <span>关注</span>
                 <strong>发现</strong>
                 <span>附近</span>
               </div>
-              <div class="feed-grid">
+              <div class="feed-grid" id="historyFeedGrid">
                 <article class="feed-card feed-card-current">
                   <canvas id="feedPosterCanvas" width="360" height="480"></canvas>
                   <h3 id="feedPosterTitle">Codex 远程 又快又稳？</h3>
@@ -277,34 +592,9 @@
                     <span class="feed-like">♡</span>
                   </div>
                 </article>
-                <article class="feed-card feed-card-placeholder">
-                  <div class="placeholder-cover placeholder-cover-a"><span>IDEA</span></div>
-                  <div class="placeholder-title placeholder-title-long"></div>
-                  <div class="placeholder-title"></div>
-                  <div class="feed-meta">
-                    <span class="feed-avatar"></span>
-                    <span class="placeholder-author"></span>
-                    <span class="feed-like">♡</span>
-                  </div>
-                </article>
-                <article class="feed-card feed-card-placeholder">
-                  <div class="placeholder-cover placeholder-cover-b"><span>MAKE</span></div>
-                  <div class="placeholder-title placeholder-title-long"></div>
-                  <div class="feed-meta">
-                    <span class="feed-avatar"></span>
-                    <span class="placeholder-author"></span>
-                    <span class="feed-like">♡</span>
-                  </div>
-                </article>
-                <article class="feed-card feed-card-placeholder">
-                  <div class="placeholder-cover placeholder-cover-c"><span>WORK</span></div>
-                  <div class="placeholder-title placeholder-title-long"></div>
-                  <div class="placeholder-title"></div>
-                  <div class="feed-meta">
-                    <span class="feed-avatar"></span>
-                    <span class="placeholder-author"></span>
-                    <span class="feed-like">♡</span>
-                  </div>
+                <article class="feed-empty-state" id="historyEmptyState">
+                  <strong>当前只展示正在编辑的封面</strong>
+                  <span>加入旧封面后，可以判断四种风格放在同一主页是否协调。</span>
                 </article>
               </div>
             </div>
@@ -315,6 +605,6 @@
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="./app.js?v=20260723-2" defer></script>
+    <script src="./app.js?v=20260724-15" defer></script>
   </body>
 </html>

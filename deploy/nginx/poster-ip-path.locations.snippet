@@ -1,0 +1,24 @@
+# 将本片段添加到 server_name 14.103.53.126 的 HTTP server {} 内。
+# 这是 location 级配置片段，不能作为独立文件直接放入 /etc/nginx/conf.d/。
+
+location = /poster {
+    return 308 /poster/;
+}
+
+location ^~ /poster/ {
+    alias /var/www/xhs-poster-studio/;
+    index index.html;
+    try_files $uri $uri/ /poster/index.html;
+
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'" always;
+}
+
+# 保留更具体的 /api/、/chat-archive/、/order-scheduler-mvp/ 和
+# /merchant-settlement-mvp/ location；仅替换原来的兜底跳转。
+location / {
+    return 308 /poster/;
+}
