@@ -3,8 +3,13 @@ const POSTER_WIDTH = 1080;
 const POSTER_HEIGHT = 1440;
 const MAX_PHOTO_BYTES = 20 * 1024 * 1024;
 const MIN_MAIN_SIZE = 60;
-const MAX_MAIN_SIZE = 210;
+const MAX_MAIN_SIZE = 360;
 const MAIN_SIZE_STEP = 2;
+const MIN_MAIN_LINE_HEIGHT = 0.9;
+const MAX_MAIN_LINE_HEIGHT = 1.5;
+const MIN_TITLE_LINE_SCALE = 0.6;
+const MAX_TITLE_LINE_SCALE = 1.5;
+const MAX_CUSTOM_TITLE_LINES = 4;
 const CARD_WIDTH_PERCENT = 84;
 const CARD_HEIGHT_PERCENT = 88;
 const CARD_CORNER_RADIUS = 52;
@@ -14,7 +19,125 @@ const LEGACY_PHOTO_MODULE_OFFSET = -48;
 const MAX_HISTORY_COVERS = 8;
 const CENTER_SNAP_SCREEN_PX = 12;
 const CENTER_GUIDE_LINGER_MS = 1200;
-const VALID_NOTE_TYPES = ["experience", "tutorial", "product", "deepDive"];
+const VALID_NOTE_TYPES = ["experience", "tutorial", "product", "deepDive", "hardwareVideo"];
+const PRESET_FEED_ORDER = ["experience", "tutorial", "product", "deepDive", "hardwareVideo"];
+const TEMPLATE_CONTENT_KEYS = Object.freeze([
+  "topLeft",
+  "topRight",
+  "upperText",
+  "titleText",
+  "subtitleText",
+  "footerText",
+]);
+// 已发布封面由前置数据脚本提供本地快照，不做账号登录、接口同步或后台抓取。
+const PUBLISHED_COVER_SAMPLES = Object.freeze(
+  Array.isArray(globalThis.XHS_PUBLISHED_COVER_SAMPLES)
+    ? globalThis.XHS_PUBLISHED_COVER_SAMPLES.map((cover) => Object.freeze({ ...cover }))
+    : [],
+);
+const PRESET_FEED_CONTENT = Object.freeze({
+  experience: {
+    topLeft: "ASK BETTER",
+    topRight: "#01",
+    upperText: "先把问题说清楚",
+    titleText: "小红书封面\n先写什么？",
+    subtitleText: "目标：缩略图一眼看懂\n限制：只保留一个重点\n已有：正文里的真实证据",
+    footerText: "PROMPT WORKSPACE",
+  },
+  tutorial: {
+    topLeft: "HOW TO",
+    topRight: "#02",
+    upperText: "3 步完成",
+    titleText: "做出统一风格\n小红书封面",
+    subtitleText: "选构图 → 填文案 → 导出 PNG",
+    footerText: "POSTER STUDIO",
+  },
+  product: {
+    topLeft: "TEST LOG",
+    topRight: "#03",
+    upperText: "1080 × 1440 导出检查",
+    titleText: "预览就是\n最终成品",
+    subtitleText: "编辑与导出复用同一套 Canvas",
+    footerText: "EXPORT CHECK",
+  },
+  deepDive: {
+    topLeft: "THINKING NOTES",
+    topRight: "NO.04",
+    upperText: "从结构、反馈与边界谈起",
+    titleText: "为什么好用的工具\n都在隐藏复杂度",
+    subtitleText: "给小团队的产品设计笔记",
+    footerText: "EDITORIAL SERIES",
+  },
+  hardwareVideo: {
+    topLeft: "MODEL RELEASE",
+    topRight: "5.6",
+    upperText: "FRONTIER UPDATE",
+    titleText: "新模型来了\n这次升级了什么",
+    subtitleText: "能力、速度与适用边界",
+    footerText: "RELEASE NOTES",
+  },
+});
+const TEMPLATE_COPY_GUIDES = Object.freeze({
+  experience: {
+    summary: "先呈现读者正在问的问题，再用 Prompt 卡补齐上下文。",
+    bestFor: "问答、观点、需求拆解",
+    roles: [
+      ["角标", "栏目名 + 序号", "ASK BETTER · #01"],
+      ["上方副标题", "提问前提 · 6–10 字", "先把问题说清楚"],
+      ["主标题", "读者问题 · 8–16 字，建议 2 行", "小红书封面 / 先写什么？"],
+      ["下方副标题", "Prompt 输入 · 2–3 行", "目标 / 限制 / 已有"],
+      ["底部文字", "系列名 · 可留空", "PROMPT WORKSPACE"],
+    ],
+  },
+  tutorial: {
+    summary: "用数字先承诺结果，再把步骤压缩成一条可收藏的行动路径。",
+    bestFor: "教程、清单、操作指南",
+    roles: [
+      ["角标", "教程分类 + 期数", "HOW TO · #02"],
+      ["上方副标题", "数量或时间承诺 · 4–10 字", "3 步完成"],
+      ["主标题", "完成后的结果 · 8–18 字，建议 2 行", "做出统一风格 / 小红书封面"],
+      ["下方副标题", "2–3 个步骤 · 用 → 分隔", "选构图 → 填文案 → 导出 PNG"],
+      ["底部文字", "教程系列名 · 可留空", "POSTER STUDIO"],
+    ],
+  },
+  product: {
+    summary: "先给真实测试条件和明确结论，再用一张图片承担证据。",
+    bestFor: "测评、产品体验、结果对比",
+    roles: [
+      ["角标", "测试栏目 + 期数", "TEST LOG · #03"],
+      ["上方副标题", "测试条件或证据口径 · 6–16 字", "1080 × 1440 导出检查"],
+      ["主标题", "结论先行 · 6–16 字，建议 2 行", "预览就是 / 最终成品"],
+      ["下方副标题", "结论依据 · 8–20 字", "编辑与导出复用同一套 Canvas"],
+      ["底部文字", "来源或方法标签 · 可留空", "EXPORT CHECK"],
+    ],
+  },
+  deepDive: {
+    summary: "像文章封面一样先给完整观点，再补充论证方向。",
+    bestFor: "深度分析、趋势判断、长文导读",
+    roles: [
+      ["角标", "专栏名 + 期号", "THINKING NOTES · NO.04"],
+      ["上方副标题", "论据或切入维度 · 8–18 字", "从结构、反馈与边界谈起"],
+      ["主标题", "完整观点 · 14–28 字，建议 2–3 行", "为什么好用的工具 / 都在隐藏复杂度"],
+      ["下方副标题", "文章范围或读者收益", "给小团队的产品设计笔记"],
+      ["底部文字", "文章系列名 · 可留空", "EDITORIAL SERIES"],
+    ],
+  },
+  hardwareVideo: {
+    summary: "让版本号和主视觉先建立发布感，标题只回答这次更新了什么。",
+    bestFor: "模型发布、产品更新、版本解读",
+    roles: [
+      ["角标", "发布类型 + 版本号", "MODEL RELEASE · 5.6"],
+      ["上方副标题", "发布阶段 · 2–3 个短词", "FRONTIER UPDATE"],
+      ["主标题", "更新事件 + 核心问题 · 固定 2 行", "新模型来了 / 这次升级了什么"],
+      ["下方副标题", "3 个升级维度", "能力、速度与适用边界"],
+      ["底部文字", "发布记录名 · 可留空", "RELEASE NOTES"],
+    ],
+  },
+});
+const titleWordSegmenter =
+  typeof Intl.Segmenter === "function"
+    ? new Intl.Segmenter("zh-CN", { granularity: "word" })
+    : null;
 
 const photoLayoutPresets = Object.freeze({
   editorial: {
@@ -24,10 +147,10 @@ const photoLayoutPresets = Object.freeze({
     photoFrameHeight: 340,
   },
   album: {
-    photoFrameX: 200,
-    photoFrameY: 220,
-    photoFrameWidth: 680,
-    photoFrameHeight: 680,
+    photoFrameX: 132,
+    photoFrameY: 218,
+    photoFrameWidth: 816,
+    photoFrameHeight: 500,
   },
   deepDive: {
     photoFrameX: 106,
@@ -35,27 +158,40 @@ const photoLayoutPresets = Object.freeze({
     photoFrameWidth: 868,
     photoFrameHeight: 570,
   },
+  video: {
+    photoFrameX: 132,
+    photoFrameY: 218,
+    photoFrameWidth: 816,
+    photoFrameHeight: 459,
+  },
 });
 
 const defaults = Object.freeze({
   noteType: "experience",
   styleCustomized: false,
-  topLeft: "FIELD NOTES",
-  topRight: "#05",
-  upperText: "50+ 次迭代复盘",
-  // 默认使用两行，兼顾文字海报与专辑焦点版的信息流识别度。
-  titleText: "Codex 远程\n到底稳不稳？",
-  subtitleText: "我的 iOS 端远程解决方案",
-  footerText: "",
+  themeId: "forestPaper",
+  contentMode: "text",
+  templateContentDrafts: Object.freeze({}),
+  topLeft: PRESET_FEED_CONTENT.experience.topLeft,
+  topRight: PRESET_FEED_CONTENT.experience.topRight,
+  upperText: PRESET_FEED_CONTENT.experience.upperText,
+  // 默认使用两行，兼顾纯文字与照片优先模式的信息流识别度。
+  titleText: PRESET_FEED_CONTENT.experience.titleText,
+  subtitleText: PRESET_FEED_CONTENT.experience.subtitleText,
+  footerText: PRESET_FEED_CONTENT.experience.footerText,
   footerAlign: "center",
+  floatingPreviewSide: "right",
   backgroundColor: "#173027",
   cardColor: "#F0E6CF",
   textColor: "#19352B",
   visualColor: "#D8D6E2",
   fontFamily: "grotesk",
   titleFontFamily: "grotesk",
-  mainSize: 190,
-  mainSizePreference: 190,
+  mainSize: 260,
+  mainSizePreference: 260,
+  mainLineHeight: 0.96,
+  // null 表示跟随当前笔记类型的自动强调规则；用户拖动分行滑杆后保存每行比例。
+  titleLineScales: null,
   upperSize: 38,
   subtitleSize: 42,
   groupGap: 74,
@@ -72,91 +208,80 @@ const defaults = Object.freeze({
   ...photoLayoutPresets.editorial,
 });
 
-const themes = {
-  // 每套只使用外层、卡片、文字三种颜色，保证主标题层级稳定，切换预设不改变排版。
-  codex: {
-    backgroundColor: "#071F20",
-    cardColor: "#F2552C",
-    textColor: "#081C1C",
+const themes = Object.freeze({
+  // 配色只负责视觉语气，不再携带模板含义；四个颜色角色同时切换，避免视觉区残留旧主题。
+  openaiMono: {
+    label: "OpenAI 黑白",
+    backgroundColor: "#000000",
+    cardColor: "#101010",
+    textColor: "#F7F7F7",
+    visualColor: "#303030",
   },
-  midnight: {
-    backgroundColor: "#0E1733",
-    cardColor: "#A9C4F5",
-    textColor: "#111A38",
+  claudeWarm: {
+    label: "Claude 暖黑",
+    backgroundColor: "#141413",
+    cardColor: "#1F1E1D",
+    textColor: "#FAF9F5",
+    // 深锈色承载正文时仍有足够对比；更亮的珊瑚色只作为无文字装饰线使用。
+    visualColor: "#8D3F2B",
   },
-  ivory: {
+  forestPaper: {
+    label: "森林纸感",
     backgroundColor: "#173027",
     cardColor: "#F0E6CF",
     textColor: "#19352B",
+    visualColor: "#D8D6E2",
   },
-  mustard: {
-    backgroundColor: "#1B1A17",
-    cardColor: "#E1B84B",
-    textColor: "#1C1A14",
+  inkPaper: {
+    label: "黑墨纸张",
+    backgroundColor: "#171918",
+    cardColor: "#F7F1E5",
+    textColor: "#191A18",
+    visualColor: "#DDD5C6",
   },
-  burgundy: {
-    backgroundColor: "#2D161B",
-    cardColor: "#D8B5A3",
-    textColor: "#35191F",
+  oceanIce: {
+    label: "海盐蓝",
+    backgroundColor: "#0B214A",
+    cardColor: "#B8D3FF",
+    textColor: "#0A1836",
+    visualColor: "#91B8F4",
   },
-  plumButter: {
-    backgroundColor: "#24182F",
-    cardColor: "#F0D56A",
-    textColor: "#261B30",
+  coralInk: {
+    label: "珊瑚墨绿",
+    backgroundColor: "#092D2B",
+    cardColor: "#FF6847",
+    textColor: "#071E1D",
+    visualColor: "#F1C5A1",
   },
-  cobaltPeach: {
-    backgroundColor: "#17254B",
-    cardColor: "#F0B39A",
-    textColor: "#19264A",
+  lemonPlum: {
+    label: "青柠紫",
+    backgroundColor: "#322044",
+    cardColor: "#D9F46C",
+    textColor: "#241631",
+    visualColor: "#C9A7EB",
   },
-  cocoaSky: {
-    backgroundColor: "#2A1D20",
-    cardColor: "#BFD8EC",
-    textColor: "#271C1F",
+  berryCloud: {
+    label: "莓果云朵",
+    backgroundColor: "#6D2848",
+    cardColor: "#BDD8FF",
+    textColor: "#28172B",
+    visualColor: "#E9BED1",
   },
-  // 由参考图与 ImageGen 色彩稿收敛：青色方案使用深色文字，保持小图列表中的标题识别度。
-  electricCyan: {
-    backgroundColor: "#031B20",
-    cardColor: "#42CCD4",
-    textColor: "#041A1D",
+  cyanNight: {
+    label: "夜光青",
+    backgroundColor: "#06242A",
+    cardColor: "#62D9D4",
+    textColor: "#052126",
+    visualColor: "#A7E2DE",
   },
-  // 高饱和蓝底反用冰白文字，避免小字号信息在蓝色上发灰。
-  signalBlue: {
-    backgroundColor: "#07152D",
-    cardColor: "#0867D9",
-    textColor: "#F5F7FF",
+  clayPaper: {
+    label: "陶土米白",
+    backgroundColor: "#D77656",
+    cardColor: "#FBF7EF",
+    textColor: "#191918",
+    visualColor: "#E8D7C7",
   },
-  paperBlack: {
-    backgroundColor: "#E6E0D5",
-    cardColor: "#FAF7F0",
-    textColor: "#171B1A",
-  },
-  forestSage: {
-    backgroundColor: "#142923",
-    cardColor: "#BFD6C4",
-    textColor: "#142923",
-  },
-  plumRose: {
-    backgroundColor: "#2B1B29",
-    cardColor: "#E5BBCD",
-    textColor: "#2E1B29",
-  },
-  inkMint: {
-    backgroundColor: "#072826",
-    cardColor: "#93D9C1",
-    textColor: "#0A2A26",
-  },
-  graphiteSilver: {
-    backgroundColor: "#1D232B",
-    cardColor: "#CDD3DA",
-    textColor: "#202730",
-  },
-  coffeeCream: {
-    backgroundColor: "#2A211C",
-    cardColor: "#E8D8C2",
-    textColor: "#30241E",
-  },
-};
+});
 
 const fontStacks = {
   system:
@@ -200,76 +325,138 @@ const fontPresets = Object.freeze({
 
 const noteTypePresets = Object.freeze({
   experience: {
-    label: "经验 / 观点",
-    description: "纯文字 · 日常主力",
-    backgroundColor: "#173027",
-    cardColor: "#F0E6CF",
-    textColor: "#19352B",
-    visualColor: "#D8D6E2",
+    label: "对话工作台",
+    description: "问题主导 · Prompt 卡片",
     fontFamily: "grotesk",
     titleFontFamily: "grotesk",
-    mainSize: 190,
-    upperSize: 38,
-    subtitleSize: 42,
-    groupGap: 74,
+    mainSize: 250,
+    mainLineHeight: 0.96,
+    upperSize: 32,
+    subtitleSize: 36,
+    groupGap: 44,
     verticalOffset: 0,
     sidePadding: 64,
     footerAlign: "center",
     photoLayout: "editorial",
   },
   tutorial: {
-    label: "教程 / 清单",
-    description: "步骤证据 · 收藏导向",
-    backgroundColor: "#0E1733",
-    cardColor: "#A9C4F5",
-    textColor: "#111A38",
-    visualColor: "#111A38",
+    label: "编号清单",
+    description: "步骤卡片 · 收藏导向",
     fontFamily: "grotesk",
     titleFontFamily: "grotesk",
-    mainSize: 176,
-    upperSize: 36,
-    subtitleSize: 38,
-    groupGap: 58,
+    mainSize: 270,
+    mainLineHeight: 0.96,
+    upperSize: 32,
+    subtitleSize: 34,
+    groupGap: 40,
     verticalOffset: 0,
     sidePadding: 64,
     footerAlign: "center",
     photoLayout: "editorial",
   },
   product: {
-    label: "产品 / 实测",
-    description: "大图优先 · 重点内容",
-    backgroundColor: "#071F20",
-    cardColor: "#F2552C",
-    textColor: "#081C1C",
-    visualColor: "#081C1C",
+    label: "证据图文",
+    description: "照片佐证 · 实测结论",
     fontFamily: "grotesk",
     titleFontFamily: "grotesk",
-    mainSize: 190,
-    upperSize: 38,
-    subtitleSize: 42,
-    groupGap: 60,
+    mainSize: 280,
+    mainLineHeight: 0.96,
+    upperSize: 30,
+    subtitleSize: 34,
+    groupGap: 32,
     verticalOffset: 0,
     sidePadding: 64,
     footerAlign: "center",
-    photoLayout: "album",
+    photoLayout: "editorial",
   },
   deepDive: {
-    label: "深度文章",
-    description: "编辑博客 · 专题复盘",
-    backgroundColor: "#173027",
-    cardColor: "#F0E6CF",
-    textColor: "#19352B",
-    visualColor: "#D8D6E2",
+    label: "编辑杂志",
+    description: "暖黑衬线 · 手绘导读",
     fontFamily: "grotesk",
     titleFontFamily: "serif",
-    mainSize: 150,
-    upperSize: 36,
-    subtitleSize: 38,
-    groupGap: 44,
+    mainSize: 200,
+    mainLineHeight: 1,
+    upperSize: 30,
+    subtitleSize: 34,
+    groupGap: 32,
     verticalOffset: 0,
     sidePadding: 64,
     footerAlign: "left",
-    photoLayout: "deepDive",
+    photoLayout: "album",
+  },
+  hardwareVideo: {
+    label: "模型发布",
+    description: "超大编号 · 图片主导",
+    fontFamily: "grotesk",
+    titleFontFamily: "grotesk",
+    mainSize: 176,
+    mainLineHeight: 0.94,
+    upperSize: 28,
+    subtitleSize: 30,
+    groupGap: 24,
+    verticalOffset: 0,
+    sidePadding: 64,
+    footerAlign: "left",
+    photoLayout: "album",
+  },
+});
+
+const typographyProfiles = Object.freeze({
+  // 五类模板只改变信息层级，不改变品牌卡片骨架；最后一行默认承担缩略图里的记忆点。
+  experience: {
+    titleWeight: 900,
+    focusScale: 1.08,
+    singleLineScale: 1.08,
+    maxLineSizeRatio: 1.62,
+    titleLineGapEm: -0.04,
+    letterSpacingEm: -0.026,
+    upperAlpha: 0.72,
+    subtitleAlpha: 0.82,
+    maxTitleLines: 4,
+  },
+  tutorial: {
+    titleWeight: 900,
+    focusScale: 1.04,
+    singleLineScale: 1.06,
+    maxLineSizeRatio: 1.5,
+    titleLineGapEm: -0.04,
+    letterSpacingEm: -0.027,
+    upperAlpha: 0.74,
+    subtitleAlpha: 0.84,
+    maxTitleLines: 3,
+  },
+  product: {
+    titleWeight: 900,
+    focusScale: 1.05,
+    singleLineScale: 1.08,
+    maxLineSizeRatio: 1.55,
+    titleLineGapEm: -0.04,
+    letterSpacingEm: -0.029,
+    upperAlpha: 0.72,
+    subtitleAlpha: 0.82,
+    maxTitleLines: 4,
+  },
+  deepDive: {
+    titleWeight: 700,
+    focusScale: 1.04,
+    singleLineScale: 1.04,
+    maxLineSizeRatio: 1.45,
+    titleLineGapEm: 0,
+    letterSpacingEm: -0.014,
+    upperAlpha: 0.68,
+    subtitleAlpha: 0.8,
+    maxTitleLines: 3,
+  },
+  hardwareVideo: {
+    titleWeight: 900,
+    focusScale: 1.04,
+    singleLineScale: 1.04,
+    maxLineSizeRatio: 1.5,
+    titleLineGapEm: -0.02,
+    letterSpacingEm: -0.022,
+    upperAlpha: 0.72,
+    subtitleAlpha: 0.82,
+    maxTitleLines: 3,
   },
 });
 
@@ -278,6 +465,13 @@ const context = canvas.getContext("2d");
 const feedPosterCanvas = document.querySelector("#feedPosterCanvas");
 const feedPosterContext = feedPosterCanvas.getContext("2d");
 const feedPosterTitle = document.querySelector("#feedPosterTitle");
+const previewShell = document.querySelector(".preview-shell");
+const floatingPreview = document.querySelector("#floatingPreview");
+const floatingPreviewCanvas = document.querySelector("#floatingPreviewCanvas");
+const floatingPreviewContext = floatingPreviewCanvas.getContext("2d");
+const floatingPreviewMedia = window.matchMedia(
+  "(min-width: 601px) and (max-width: 900px) and (any-pointer: coarse)",
+);
 const ratioBadge = document.querySelector("#ratioBadge");
 const toast = document.querySelector("#toast");
 const downloadButton = document.querySelector("#downloadButton");
@@ -294,16 +488,35 @@ const photoTransformHelp = document.querySelector("#photoTransformHelp");
 const resetPhotoFrameButton = document.querySelector("#resetPhotoFrameButton");
 const removePhotoButton = document.querySelector("#removePhotoButton");
 const customStyleControls = document.querySelector("#customStyleControls");
+const colorContrastStatus = document.querySelector("#colorContrastStatus");
 const customStyleButton = document.querySelector("#customStyleButton");
 const styleStatus = document.querySelector("#styleStatus");
 const styleDescription = document.querySelector("#styleDescription");
+const templateCopyGuideBestFor = document.querySelector("#templateCopyGuideBestFor");
+const templateCopyGuideSummary = document.querySelector("#templateCopyGuideSummary");
+const templateCopyGuideList = document.querySelector("#templateCopyGuideList");
+const applyTemplateExampleButton = document.querySelector("#applyTemplateExampleButton");
+const restoreTemplateContentButton = document.querySelector(
+  "#restoreTemplateContentButton",
+);
+const upperTextHint = document.querySelector("#upperTextHint");
+const titleTextHint = document.querySelector("#titleTextHint");
+const subtitleTextHint = document.querySelector("#subtitleTextHint");
+const titleLineSizeControls = document.querySelector("#titleLineSizeControls");
+const titleLineSizeList = document.querySelector("#titleLineSizeList");
+const resetTitleLineSizesButton = document.querySelector("#resetTitleLineSizesButton");
 const photoLayoutPicker = document.querySelector("#photoLayoutPicker");
 const photoPresetHint = document.querySelector("#photoPresetHint");
 const historyCoverInput = document.querySelector("#historyCoverInput");
+const loadPublishedCoversButton = document.querySelector("#loadPublishedCoversButton");
+const loadPresetCoversButton = document.querySelector("#loadPresetCoversButton");
 const clearHistoryButton = document.querySelector("#clearHistoryButton");
 const historyStatus = document.querySelector("#historyStatus");
 const historyFeedGrid = document.querySelector("#historyFeedGrid");
 const historyEmptyState = document.querySelector("#historyEmptyState");
+const editorialSamplePhoto = new Image();
+editorialSamplePhoto.decoding = "async";
+editorialSamplePhoto.src = "./assets/presets/editorial-workbench-sample-v1.jpg";
 
 let state = loadState();
 let renderFrame = 0;
@@ -313,9 +526,15 @@ let uploadedPhotoUrl = "";
 let handwrittenFontPromise;
 let photoGesture = null;
 let alignmentGuideTimer = 0;
-// 即使从旧版本迁移了自定义值，也默认收起高级项，避免生成页再次变成控制台。
-let customStyleOpen = false;
+let floatingPreviewVisibilityFrame = 0;
+// 参数工作台默认展示完整调节项，避免用户在文案、配色和排版之间反复展开与跳转。
+let customStyleOpen = true;
 let historyCovers = [];
+let templateContentBeforeExample = null;
+
+editorialSamplePhoto.addEventListener("load", () => {
+  scheduleRender({ persist: false });
+});
 
 function loadState() {
   try {
@@ -325,6 +544,21 @@ function loadState() {
     const hasSavedState = Object.keys(validSaved).length > 0;
     if (!VALID_NOTE_TYPES.includes(merged.noteType)) {
       merged.noteType = defaults.noteType;
+    }
+    merged.templateContentDrafts = sanitizeTemplateContentDrafts(
+      validSaved.templateContentDrafts,
+    );
+    if (!Object.prototype.hasOwnProperty.call(validSaved, "themeId")) {
+      merged.themeId = inferThemeIdFromColors(merged) || "custom";
+    }
+    if (merged.themeId !== "custom" && !Object.prototype.hasOwnProperty.call(themes, merged.themeId)) {
+      merged.themeId = "custom";
+    }
+    if (!Object.prototype.hasOwnProperty.call(validSaved, "contentMode")) {
+      merged.contentMode = "text";
+    }
+    if (!["text", "photo"].includes(merged.contentMode)) {
+      merged.contentMode = defaults.contentMode;
     }
     // 旧版本没有笔记类型概念：保留用户原有视觉值，并标记为基于经验预设的自定义样式。
     if (hasSavedState && !Object.prototype.hasOwnProperty.call(validSaved, "noteType")) {
@@ -340,21 +574,43 @@ function loadState() {
       merged.titleFontFamily = noteTypePresets[merged.noteType].titleFontFamily;
     }
     merged.visualColor =
-      normalizeHex(merged.visualColor) || noteTypePresets[merged.noteType].visualColor;
+      normalizeHex(merged.visualColor) ||
+      themes[merged.themeId]?.visualColor ||
+      themes.forestPaper.visualColor;
     // 兼容旧版状态：首次升级时把用户原有字号作为偏好值，不强行恢复默认字号。
     if (!Object.prototype.hasOwnProperty.call(validSaved, "mainSizePreference")) {
       merged.mainSizePreference = merged.mainSize;
     }
+    if (!Object.prototype.hasOwnProperty.call(validSaved, "mainLineHeight")) {
+      merged.mainLineHeight = noteTypePresets[merged.noteType].mainLineHeight;
+    }
+    merged.mainLineHeight = clamp(
+      merged.mainLineHeight,
+      MIN_MAIN_LINE_HEIGHT,
+      MAX_MAIN_LINE_HEIGHT,
+    );
+    merged.titleLineScales = Array.isArray(validSaved.titleLineScales)
+      ? validSaved.titleLineScales
+          .slice(0, MAX_CUSTOM_TITLE_LINES)
+          .map((scale) => clamp(scale, MIN_TITLE_LINE_SCALE, MAX_TITLE_LINE_SCALE))
+      : null;
     if (!Object.prototype.hasOwnProperty.call(validSaved, "photoFocusY")) {
       merged.photoFocusY = Number.isFinite(Number(validSaved.photoPosition))
         ? Number(validSaved.photoPosition)
         : defaults.photoFocusY;
+    }
+    // 旧版“视频框”已经收敛进模型发布的大图主导；只迁移模式名，保留用户保存的照片区域与取景。
+    if (merged.photoLayout === "video") {
+      merged.photoLayout = "album";
     }
     if (!Object.prototype.hasOwnProperty.call(photoLayoutPresets, merged.photoLayout)) {
       merged.photoLayout = defaults.photoLayout;
     }
     if (!["frame", "crop"].includes(merged.photoEditMode)) {
       merged.photoEditMode = defaults.photoEditMode;
+    }
+    if (!["left", "right"].includes(merged.floatingPreviewSide)) {
+      merged.floatingPreviewSide = defaults.floatingPreviewSide;
     }
     if (!Object.prototype.hasOwnProperty.call(validSaved, "photoFrameY")) {
       const legacyOffset = Number(validSaved.photoModuleOffset);
@@ -380,30 +636,269 @@ function persistState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
+function getTemplateContentSnapshot(source) {
+  return Object.fromEntries(
+    TEMPLATE_CONTENT_KEYS.map((key) => [key, String(source?.[key] ?? "")]),
+  );
+}
+
+function sanitizeTemplateContentDrafts(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([noteType, draft]) => VALID_NOTE_TYPES.includes(noteType) && draft)
+      .map(([noteType, draft]) => [noteType, getTemplateContentSnapshot(draft)]),
+  );
+}
+
+function isSameTemplateContent(first, second) {
+  return TEMPLATE_CONTENT_KEYS.every(
+    (key) => String(first?.[key] ?? "") === String(second?.[key] ?? ""),
+  );
+}
+
+function applyTemplateContentSnapshot(snapshot) {
+  TEMPLATE_CONTENT_KEYS.forEach((key) => {
+    state[key] = String(snapshot?.[key] ?? "");
+  });
+  // 文案原稿自带换行结构，载入时恢复该模板的自动标题强调，避免沿用上一份文案的逐行比例。
+  state.titleLineScales = null;
+}
+
+function updateCurrentTemplateContentDraft() {
+  state.templateContentDrafts = {
+    ...(state.templateContentDrafts || {}),
+    [state.noteType]: getTemplateContentSnapshot(state),
+  };
+}
+
+function inferThemeIdFromColors(source = state) {
+  return Object.entries(themes).find(([, theme]) =>
+    ["backgroundColor", "cardColor", "textColor", "visualColor"].every(
+      (key) => normalizeHex(theme[key]) === normalizeHex(source[key]),
+    ),
+  )?.[0];
+}
+
 function getNoteTypePreset(noteType = state.noteType) {
   return noteTypePresets[noteType] || noteTypePresets.experience;
+}
+
+function getTypographyProfile(noteType = state.noteType) {
+  return typographyProfiles[noteType] || typographyProfiles.experience;
+}
+
+function getTitleDesiredSizes(lines, mainSize, profile = getTypographyProfile()) {
+  return getEffectiveTitleLineScales(lines, profile).map((scale) => mainSize * scale);
+}
+
+function getDefaultTitleLineScales(lines, profile = getTypographyProfile()) {
+  const focusIndex = Math.max(0, lines.length - 1);
+  return lines.map((_, index) => {
+    if (lines.length === 1) return profile.singleLineScale;
+    return index === focusIndex ? profile.focusScale : 1;
+  });
+}
+
+function getEffectiveTitleLineScales(lines, profile = getTypographyProfile()) {
+  const automaticScales = getDefaultTitleLineScales(lines, profile);
+  if (!Array.isArray(state.titleLineScales)) return automaticScales;
+
+  return lines.map((_, index) =>
+    clamp(
+      state.titleLineScales[index] ?? automaticScales[index],
+      MIN_TITLE_LINE_SCALE,
+      MAX_TITLE_LINE_SCALE,
+    ),
+  );
+}
+
+function mergeSingleCjkTitleTokens(tokens) {
+  const merged = [];
+  for (let index = 0; index < tokens.length; ) {
+    if (!/^[\p{Script=Han}]$/u.test(tokens[index])) {
+      merged.push(tokens[index]);
+      index += 1;
+      continue;
+    }
+
+    const run = [];
+    while (index < tokens.length && /^[\p{Script=Han}]$/u.test(tokens[index])) {
+      run.push(tokens[index]);
+      index += 1;
+    }
+    for (let runIndex = 0; runIndex < run.length; runIndex += 2) {
+      merged.push(run.slice(runIndex, runIndex + 2).join(""));
+    }
+  }
+  return merged;
+}
+
+function splitTitleLineForEmphasis(
+  line,
+  size,
+  maxWidth,
+  weight,
+  family,
+  letterSpacingEm,
+) {
+  const segmentedTokens = titleWordSegmenter
+    ? Array.from(titleWordSegmenter.segment(line), ({ segment }) => segment)
+    : line.match(/[A-Za-z0-9][A-Za-z0-9.+/#:&_-]*|\s+|./gu) || Array.from(line);
+  const tokens = mergeSingleCjkTitleTokens(segmentedTokens);
+  if (tokens.length < 2) return null;
+
+  context.font = fontString(weight, size, family);
+  const candidates = [];
+  for (let index = 1; index < tokens.length; index += 1) {
+    const left = tokens.slice(0, index).join("").trim();
+    const right = tokens.slice(index).join("").trim();
+    if (!left || !right) continue;
+
+    const spacing = size * letterSpacingEm;
+    const leftWidth = measureSpacedText(left, spacing);
+    const rightWidth = measureSpacedText(right, spacing);
+    const boundaryHasSpace =
+      /\s/u.test(tokens[index - 1] || "") || /\s/u.test(tokens[index] || "");
+    const score =
+      Math.max(leftWidth, rightWidth) + Math.abs(leftWidth - rightWidth) * 0.18;
+    candidates.push({ left, right, score, boundaryHasSpace });
+  }
+
+  // 有自然空格时只在词组边界拆行，避免出现 “Codex 已 / 经快两天” 这类机械断句。
+  const naturalCandidates = candidates.filter((candidate) => {
+    if (!candidate.boundaryHasSpace) return false;
+    // 不把单个数字或单字留成一整行，例如教程标题里的“3 步”不能被拆成“3 / 步…”。
+    return (
+      Array.from(candidate.left.replace(/\s/gu, "")).length >= 2 &&
+      Array.from(candidate.right.replace(/\s/gu, "")).length >= 2
+    );
+  });
+  const candidatePool = naturalCandidates.length ? naturalCandidates : candidates;
+  const bestSplit = candidatePool.reduce(
+    (best, candidate) => (!best || candidate.score < best.score ? candidate : best),
+    null,
+  );
+  return bestSplit ? [bestSplit.left, bestSplit.right] : null;
+}
+
+function wrapTitleLinesForEmphasis(
+  lines,
+  mainSize,
+  maxWidth,
+  profile = getTypographyProfile(),
+) {
+  const wrapped = [...lines];
+  if (!wrapped.length) return wrapped;
+  // 用户已经手动换行时，以手动结构为准；超宽单行交给逐行缩放，不能擅自再拆出第四行。
+  if (wrapped.length > 1) return wrapped;
+
+  // 旧封面突出的关键不是单纯字号，而是把长句拆成更多展示行，让标题主动占用纵向空间。
+  while (wrapped.length < profile.maxTitleLines) {
+    context.font = fontString(profile.titleWeight, mainSize, state.titleFontFamily);
+    const widths = wrapped.map((line) =>
+      measureSpacedText(line || " ", mainSize * profile.letterSpacingEm),
+    );
+    const widestWidth = Math.max(...widths);
+    if (widestWidth <= maxWidth * 0.78) break;
+
+    const widestIndex = widths.indexOf(widestWidth);
+    const split = splitTitleLineForEmphasis(
+      wrapped[widestIndex],
+      mainSize,
+      maxWidth,
+      profile.titleWeight,
+      state.titleFontFamily,
+      profile.letterSpacingEm,
+    );
+    if (!split) break;
+    wrapped.splice(widestIndex, 1, ...split);
+  }
+
+  return wrapped;
 }
 
 function applyNoteTypePreset(noteType, { notify = true } = {}) {
   if (!VALID_NOTE_TYPES.includes(noteType)) return;
 
+  const previousNoteType = state.noteType;
+  const currentContent = getTemplateContentSnapshot(state);
+  const existingDraft = state.templateContentDrafts?.[noteType];
+  const templateContentDrafts = {
+    ...(state.templateContentDrafts || {}),
+    [previousNoteType]: currentContent,
+  };
+  const nextContent =
+    noteType === previousNoteType
+      ? currentContent
+      : existingDraft || PRESET_FEED_CONTENT[noteType];
   const preset = getNoteTypePreset(noteType);
   const framePreset = photoLayoutPresets[preset.photoLayout];
+  const { label, description, ...styleValues } = preset;
   state = {
     ...state,
-    ...preset,
+    ...styleValues,
     ...framePreset,
+    ...nextContent,
     noteType,
+    templateContentDrafts,
     styleCustomized: false,
     mainSizePreference: preset.mainSize,
+    titleLineScales: null,
     photoFocusX: 50,
     photoFocusY: 50,
     photoEditMode: "frame",
   };
-  customStyleOpen = false;
+  templateContentBeforeExample = null;
+  customStyleOpen = true;
   syncControls();
   scheduleRender();
-  if (notify) showToast(`已切换为「${preset.label}」`);
+  if (notify) {
+    const contentStatus =
+      noteType === previousNoteType
+        ? "文案保持不变"
+        : existingDraft
+          ? "已恢复这套模板的文案草稿"
+          : "已载入模板原稿";
+    showToast(`已切换到「${label}」；${contentStatus}`);
+  }
+}
+
+function loadCurrentTemplateExample() {
+  const example = PRESET_FEED_CONTENT[state.noteType];
+  if (!example || isSameTemplateContent(state, example)) {
+    showToast("当前已经是这套模板的最佳示例");
+    return;
+  }
+
+  templateContentBeforeExample = {
+    noteType: state.noteType,
+    content: getTemplateContentSnapshot(state),
+  };
+  applyTemplateContentSnapshot(example);
+  updateCurrentTemplateContentDraft();
+  syncControls();
+  scheduleRender();
+  showToast("已载入最佳示例；可以按字段逐项替换，原文仍可恢复");
+}
+
+function restoreTemplateContentBeforeExample() {
+  if (
+    !templateContentBeforeExample ||
+    templateContentBeforeExample.noteType !== state.noteType
+  ) {
+    templateContentBeforeExample = null;
+    syncStyleControls();
+    return;
+  }
+
+  applyTemplateContentSnapshot(templateContentBeforeExample.content);
+  updateCurrentTemplateContentDraft();
+  templateContentBeforeExample = null;
+  syncControls();
+  scheduleRender();
+  showToast("已恢复载入示例前的文案");
 }
 
 function markStyleCustomized() {
@@ -423,6 +918,37 @@ function normalizeHex(value) {
 
   const full = /^#?([\da-f]{6})$/i.exec(raw);
   return full ? `#${full[1].toUpperCase()}` : null;
+}
+
+function getRelativeLuminance(value) {
+  const hex = normalizeHex(value);
+  if (!hex) return 0;
+  const channels = hex
+    .slice(1)
+    .match(/.{2}/g)
+    .map((channel) => Number.parseInt(channel, 16) / 255)
+    .map((channel) =>
+      channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4,
+    );
+  return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+}
+
+function getContrastRatio(firstColor, secondColor) {
+  const first = getRelativeLuminance(firstColor);
+  const second = getRelativeLuminance(secondColor);
+  return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
+}
+
+function updateColorContrastStatus() {
+  if (!colorContrastStatus) return;
+  // 海报文字既可能落在卡片上，也可能落在拼贴视觉区；取两处对比度的较低值作为护栏。
+  const cardRatio = getContrastRatio(state.textColor, state.cardColor);
+  const visualRatio = getContrastRatio(state.textColor, state.visualColor);
+  const hasSufficientContrast = Math.min(cardRatio, visualRatio) >= 4.5;
+  colorContrastStatus.classList.toggle("is-warning", !hasSufficientContrast);
+  colorContrastStatus.textContent = hasSufficientContrast
+    ? `文字对比度充足：卡片 ${cardRatio.toFixed(1)}:1 · 视觉区 ${visualRatio.toFixed(1)}:1`
+    : `文字对比度偏低：卡片 ${cardRatio.toFixed(1)}:1 · 视觉区 ${visualRatio.toFixed(1)}:1，建议至少 4.5:1`;
 }
 
 function splitLines(value) {
@@ -485,91 +1011,21 @@ function getFixedCardMetrics() {
   };
 }
 
-function calculateMainVerticalLimit(maxContentWidth) {
-  const titleLines = splitLines(state.titleText);
-  if (!titleLines.length) return MAX_MAIN_SIZE;
-  if (state.noteType === "deepDive") return 168;
-
-  const { cardWidth, cardHeight, cardX, cardY } = getFixedCardMetrics();
-  const padding = Number(state.sidePadding);
-  const photoWindow = uploadedPhoto
-    ? getPhotoWindowMetrics(cardX, cardY, cardWidth, cardHeight, padding, 1)
-    : null;
-  const useAlbumLayout = state.photoLayout === "album" && photoWindow;
-  const albumTextRegion =
-    useAlbumLayout ? getAlbumTextRegion(cardY, cardHeight, photoWindow, 1) : null;
-  const safeContentTop = albumTextRegion?.top ?? cardY + 158;
-  const safeContentBottom =
-    albumTextRegion?.bottom ?? (photoWindow ? photoWindow.y - 44 : cardY + cardHeight - 90);
-  const availableContentHeight = Math.max(1, safeContentBottom - safeContentTop);
-
-  const upperSize = useAlbumLayout
-    ? Math.min(Number(state.upperSize), 32)
-    : Number(state.upperSize);
-  const subtitleSize = Number(state.subtitleSize);
-  const upperLines = splitLines(state.upperText);
-  const subtitleLines = splitLines(state.subtitleText);
-  const upperBlock = createBlock(
-    upperLines,
-    upperLines.map(() => upperSize),
-    {
-      weight: 700,
-      family: state.fontFamily,
-      maxWidth: maxContentWidth,
-      minScale: 0.62,
-      lineGap: upperSize * 0.25,
-    },
-  );
-  const subtitleBlock = createBlock(
-    subtitleLines,
-    subtitleLines.map(() => subtitleSize),
-    {
-      weight: 700,
-      family: state.fontFamily,
-      maxWidth: maxContentWidth,
-      minScale: 0.58,
-      lineGap: subtitleSize * 0.28,
-    },
-  );
-
-  const visibleBlockCount =
-    1 + Number(upperBlock.height > 0) + Number(subtitleBlock.height > 0);
-  const reservedHeight =
-    upperBlock.height +
-    subtitleBlock.height +
-    Math.max(0, visibleBlockCount - 1) * (useAlbumLayout ? 18 : 24);
-  const mainHeightFactor =
-    titleLines.reduce(
-      (sum, _, index) =>
-        sum + (useAlbumLayout ? 1 : index === 0 ? 0.84 : 1),
-      0,
-    ) + Math.max(0, titleLines.length - 1) * (useAlbumLayout ? 0.08 : 0.1);
-
-  return Math.floor(Math.max(1, availableContentHeight - reservedHeight) / mainHeightFactor);
+function getCurrentRenderedTitleLines() {
+  const { cardWidth } = getFixedCardMetrics();
+  const maxContentWidth = Math.max(1, cardWidth - Number(state.sidePadding) * 2);
+  // 分行控件必须对应 Canvas 里的实际展示行；自动拆行后也按预览顺序提供滑杆。
+  return wrapTitleLinesForEmphasis(
+    splitLines(state.titleText),
+    Number(state.mainSize),
+    maxContentWidth,
+    getTypographyProfile(),
+  ).slice(0, MAX_CUSTOM_TITLE_LINES);
 }
 
 function calculateMainSizeLimit() {
-  const lines = splitLines(state.titleText);
-  if (!lines.length) return MAX_MAIN_SIZE;
-
-  const { cardWidth } = getFixedCardMetrics();
-  const maxContentWidth = cardWidth - Number(state.sidePadding) * 2;
-  const useAlbumLayout = state.photoLayout === "album" && uploadedPhoto;
-  let limit = Math.min(MAX_MAIN_SIZE, calculateMainVerticalLimit(maxContentWidth));
-
-  lines.forEach((line, index) => {
-    if (!line) return;
-    const sizeFactor = useAlbumLayout ? 1 : index === 0 ? 0.84 : 1;
-    const titleWeight = state.titleFontFamily === "serif" ? 700 : 900;
-    context.font = fontString(titleWeight, 100 * sizeFactor, state.titleFontFamily);
-    const measuredAt100 = context.measureText(line).width;
-    if (measuredAt100 <= 0) return;
-    limit = Math.min(limit, Math.floor((maxContentWidth / measuredAt100) * 100));
-  });
-
-  const safeLimit = Math.max(MIN_MAIN_SIZE, Math.min(MAX_MAIN_SIZE, limit));
-  // 范围上限必须与 range 的步长对齐，避免状态显示值和滑杆实际值相差 1 px。
-  return alignMainSizeToStep(safeLimit, "down");
+  // 实际渲染会自动拆行并按可用高度收敛，这里保留完整字号范围供标题优先布局使用。
+  return MAX_MAIN_SIZE;
 }
 
 function syncMainSizeLimit() {
@@ -681,24 +1137,30 @@ function getPhotoWindowMetrics(cardX, cardY, cardWidth, cardHeight, padding, lay
   return {
     ...frame,
     radius: Math.min(
-      (state.photoLayout === "album" ? 40 : state.photoLayout === "deepDive" ? 32 : 28) *
+      (state.photoLayout === "album"
+        ? 40
+        : ["deepDive", "video"].includes(state.photoLayout)
+          ? 32
+          : 28) *
         layoutScale,
       frame.height / 2,
     ),
   };
 }
 
-function drawPhotoWindow(metrics) {
-  if (!uploadedPhoto) return;
+function drawPhotoWindow(metrics, image = uploadedPhoto) {
+  if (!image) return;
 
-  // 采用 cover 裁切；取景位置由预览中的直接拖动更新，保证窗口填满且不拉伸。
+  // 采用 cover 裁切；用户照片沿用可拖动焦点，内置示例固定居中，保证窗口填满且不拉伸。
+  const focusX = image === uploadedPhoto ? state.photoFocusX : 50;
+  const focusY = image === uploadedPhoto ? state.photoFocusY : 50;
   const crop = calculateCoverCrop(
-    uploadedPhoto.naturalWidth,
-    uploadedPhoto.naturalHeight,
+    image.naturalWidth,
+    image.naturalHeight,
     metrics.width,
     metrics.height,
-    state.photoFocusX,
-    state.photoFocusY,
+    focusX,
+    focusY,
   );
 
   if (state.photoLayout === "album") {
@@ -730,7 +1192,7 @@ function drawPhotoWindow(metrics) {
   );
   context.clip();
   context.drawImage(
-    uploadedPhoto,
+    image,
     crop.sourceX,
     crop.sourceY,
     crop.sourceWidth,
@@ -759,7 +1221,53 @@ function drawPhotoWindow(metrics) {
   }
 }
 
-function fitScale(lines, sizes, weight, maxWidth, minimumScale = 0.54, family = state.fontFamily) {
+function drawSamplePhotoFallback(metrics) {
+  context.save();
+  roundedRectPath(
+    context,
+    metrics.x,
+    metrics.y,
+    metrics.width,
+    metrics.height,
+    metrics.radius,
+  );
+  context.clip();
+  context.fillStyle = normalizeHex(state.visualColor) || "#132A2E";
+  context.fillRect(metrics.x, metrics.y, metrics.width, metrics.height);
+
+  if (editorialSamplePhoto.complete && editorialSamplePhoto.naturalWidth > 0) {
+    const crop = calculateCoverCrop(
+      editorialSamplePhoto.naturalWidth,
+      editorialSamplePhoto.naturalHeight,
+      metrics.width,
+      metrics.height,
+      50,
+      50,
+    );
+    context.drawImage(
+      editorialSamplePhoto,
+      crop.sourceX,
+      crop.sourceY,
+      crop.sourceWidth,
+      crop.sourceHeight,
+      metrics.x,
+      metrics.y,
+      metrics.width,
+      metrics.height,
+    );
+  }
+  context.restore();
+}
+
+function fitScale(
+  lines,
+  sizes,
+  weight,
+  maxWidth,
+  minimumScale = 0.54,
+  family = state.fontFamily,
+  letterSpacingEm = 0,
+) {
   if (!lines.length) return 1;
 
   let scale = 1;
@@ -767,29 +1275,82 @@ function fitScale(lines, sizes, weight, maxWidth, minimumScale = 0.54, family = 
     const text = line || " ";
     const size = sizes[Math.min(index, sizes.length - 1)];
     context.font = fontString(weight, size, family);
-    const measured = context.measureText(text).width;
+    const measured = measureSpacedText(text, size * letterSpacingEm);
     if (measured > maxWidth) scale = Math.min(scale, maxWidth / measured);
   });
   return Math.max(minimumScale, scale);
 }
 
+function balanceTitleLineSizes(sizes, maximumRatio) {
+  if (sizes.length < 3 || !Number.isFinite(maximumRatio)) return sizes;
+
+  const sortedSizes = [...sizes].sort((left, right) => left - right);
+  const referenceSize = sortedSizes[Math.floor((sortedSizes.length - 1) / 2)];
+  const maximumSize = referenceSize * maximumRatio;
+
+  // 三行以上的标题不能让一个极短词吃掉整组高度；保留强调，但优先保证其余长行在信息流里可读。
+  return sizes.map((size) => Math.min(size, maximumSize));
+}
+
 function createBlock(lines, desiredSizes, options) {
   if (!lines.length) {
-    return { lines: [], sizes: [], height: 0, lineGap: 0, options };
+    return { lines: [], sizes: [], height: 0, lineGap: 0, lineGaps: [], options };
   }
 
-  const scale = fitScale(
-    lines,
-    desiredSizes,
-    options.weight,
-    options.maxWidth,
-    options.minScale,
-    options.family,
+  let scales;
+  if (options.fitMode === "perLine") {
+    // 主标题逐行适配：长行只缩小自己，短的重点行保留大字号，避免整组被最长一行拖小。
+    scales = lines.map((line, index) => {
+      const text = line || " ";
+      const size = desiredSizes[Math.min(index, desiredSizes.length - 1)];
+      context.font = fontString(options.weight, size, options.family);
+      const measured = measureSpacedText(text, size * (options.letterSpacingEm || 0));
+      return measured > options.maxWidth ? options.maxWidth / measured : 1;
+    });
+  } else {
+    const scale = fitScale(
+      lines,
+      desiredSizes,
+      options.weight,
+      options.maxWidth,
+      options.minScale,
+      options.family,
+      options.letterSpacingEm,
+    );
+    scales = desiredSizes.map(() => scale);
+  }
+
+  let sizes = desiredSizes.map((size, index) => Math.round(size * scales[index]));
+  if (options.fitMode === "perLine") {
+    sizes = balanceTitleLineSizes(sizes, options.maxLineSizeRatio);
+  }
+  const gapScale = Math.min(...scales);
+  const lineGap = Math.round((options.lineGap || 0) * gapScale);
+  const lineHeight = Number.isFinite(options.lineHeight)
+    ? clamp(options.lineHeight, MIN_MAIN_LINE_HEIGHT, MAX_MAIN_LINE_HEIGHT)
+    : null;
+  // 主标题逐行字号可以不同，因此行距也按每一行的实际字号计算，滑杆调整才会与预览一致。
+  const lineGaps = lines.slice(0, -1).map((_, index) =>
+    lineHeight === null ? lineGap : Math.round(sizes[index] * (lineHeight - 1)),
   );
-  const sizes = desiredSizes.map((size) => Math.round(size * scale));
-  const lineGap = Math.round(options.lineGap * scale);
-  const height = sizes.reduce((sum, size) => sum + size, 0) + lineGap * (lines.length - 1);
-  return { lines, sizes, height, lineGap, options };
+  const height =
+    sizes.reduce((sum, size) => sum + size, 0) +
+    lineGaps.reduce((sum, gap) => sum + gap, 0);
+  return { lines, sizes, height, lineGap, lineGaps, options };
+}
+
+function drawTextWithSpacing(text, x, baseline, spacing) {
+  if (!spacing) {
+    context.fillText(text, x, baseline);
+    return;
+  }
+
+  let cursor = x;
+  Array.from(text).forEach((character, index, characters) => {
+    context.fillText(character, cursor, baseline);
+    cursor += context.measureText(character).width;
+    if (index < characters.length - 1) cursor += spacing;
+  });
 }
 
 function drawBlock(block, x, top) {
@@ -797,6 +1358,7 @@ function drawBlock(block, x, top) {
 
   context.save();
   context.fillStyle = state.textColor;
+  context.globalAlpha = block.options.alpha ?? 1;
   context.textAlign = "left";
   context.textBaseline = "alphabetic";
 
@@ -808,8 +1370,38 @@ function drawBlock(block, x, top) {
       size,
       block.options.family || state.fontFamily,
     );
-    context.fillText(line, x, lineTop + size * 0.82);
-    lineTop += size + block.lineGap;
+    drawTextWithSpacing(
+      line,
+      x,
+      lineTop + size * 0.82,
+      size * (block.options.letterSpacingEm || 0),
+    );
+    lineTop += size + (block.lineGaps[index] ?? block.lineGap);
+  });
+  context.restore();
+}
+
+function drawCenteredBlock(block, centerX, top) {
+  if (!block.lines.length) return;
+
+  context.save();
+  context.fillStyle = state.textColor;
+  context.globalAlpha = block.options.alpha ?? 1;
+  context.textAlign = "left";
+  context.textBaseline = "alphabetic";
+
+  let lineTop = top;
+  block.lines.forEach((line, index) => {
+    const size = block.sizes[index];
+    const spacing = size * (block.options.letterSpacingEm || 0);
+    context.font = fontString(
+      block.options.weight,
+      size,
+      block.options.family || state.fontFamily,
+    );
+    const lineWidth = measureSpacedText(line, spacing);
+    drawTextWithSpacing(line, centerX - lineWidth / 2, lineTop + size * 0.82, spacing);
+    lineTop += size + (block.lineGaps[index] ?? block.lineGap);
   });
   context.restore();
 }
@@ -873,7 +1465,7 @@ function drawCornerLabel(text, x, baseline, align, maxWidth, layoutScale) {
   context.restore();
 }
 
-function getAlbumTextRegion(cardY, cardHeight, photoWindow, layoutScale) {
+function getMediaFirstTextRegion(cardY, cardHeight, photoWindow, layoutScale) {
   const bottom = cardY + cardHeight - 84 * layoutScale;
   const minimumHeight = 350 * layoutScale;
   const desiredTop = photoWindow.y + photoWindow.height + 42 * layoutScale;
@@ -882,6 +1474,606 @@ function getAlbumTextRegion(cardY, cardHeight, photoWindow, layoutScale) {
     Math.min(desiredTop, bottom - minimumHeight),
   );
   return { top, bottom };
+}
+
+function scaleTextBlock(block, scale) {
+  if (scale >= 1 || !block.height) return block;
+  return {
+    ...block,
+    sizes: block.sizes.map((size) => Math.max(1, Math.round(size * scale))),
+    lineGap: block.lineGap * scale,
+    lineGaps: block.lineGaps.map((gap) => gap * scale),
+    height: block.height * scale,
+  };
+}
+
+function getOpticalStackTop(regionTop, regionBottom, stackHeight, bias = 0.48) {
+  const availableHeight = Math.max(1, regionBottom - regionTop);
+  const remainingHeight = Math.max(0, availableHeight - stackHeight);
+  // 视觉中心略高于几何中心：大标题的黑色重量更靠上，照片或步骤轨道负责稳定下半区。
+  return regionTop + remainingHeight * bias;
+}
+
+function drawTemplateCornerLabels({
+  cardX,
+  cardY,
+  cardWidth,
+  padding,
+  maxContentWidth,
+  layoutScale,
+}) {
+  const baseline = cardY + 105 * layoutScale;
+  drawCornerLabel(
+    state.topLeft.trim(),
+    cardX + padding,
+    baseline,
+    "left",
+    maxContentWidth * 0.42,
+    layoutScale,
+  );
+  drawCornerLabel(
+    state.topRight.trim(),
+    cardX + cardWidth - padding,
+    baseline,
+    "right",
+    maxContentWidth * 0.42,
+    layoutScale,
+  );
+}
+
+function drawEyebrowChip(text, x, top, maxWidth, layoutScale, scale, filled) {
+  const value = text.trim();
+  if (!value) return 0;
+
+  let fontSize = 29 * layoutScale * scale;
+  const horizontalPadding = 20 * layoutScale * scale;
+  const height = 58 * layoutScale * scale;
+  context.font = fontString(800, fontSize, state.fontFamily);
+  const measured = context.measureText(value).width;
+  const availableTextWidth = Math.max(1, maxWidth - horizontalPadding * 2);
+  if (measured > availableTextWidth) {
+    fontSize *= availableTextWidth / measured;
+  }
+
+  context.font = fontString(800, fontSize, state.fontFamily);
+  const width = Math.min(
+    maxWidth,
+    context.measureText(value).width + horizontalPadding * 2,
+  );
+  context.save();
+  roundedRectPath(context, x, top, width, height, height / 2);
+  if (filled) {
+    context.fillStyle = state.textColor;
+    context.fill();
+  } else {
+    context.strokeStyle = state.textColor;
+    context.globalAlpha = 0.42;
+    context.lineWidth = 2 * layoutScale * scale;
+    context.stroke();
+    context.globalAlpha = 1;
+  }
+  context.fillStyle = filled ? state.cardColor : state.textColor;
+  context.textBaseline = "middle";
+  context.textAlign = "left";
+  context.fillText(value, x + horizontalPadding, top + height * 0.52);
+  context.restore();
+  return height;
+}
+
+function parseTutorialSteps(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return [];
+  const parts = raw
+    .split(/\s*(?:→|->|›|·|\||｜)\s*/u)
+    .map((part) =>
+      part
+        .replace(/^(?:0?\d{1,2})\s*[.、:：)\-]?\s*/u, "")
+        .trim(),
+    )
+    .filter(Boolean);
+  return parts.length > 1 ? parts.slice(0, 3) : [raw];
+}
+
+function drawCenteredFittedText(text, centerX, baseline, maxWidth, fontSize, weight) {
+  let size = fontSize;
+  context.font = fontString(weight, size, state.fontFamily);
+  const measured = context.measureText(text).width;
+  if (measured > maxWidth) size *= maxWidth / measured;
+  context.font = fontString(weight, size, state.fontFamily);
+  context.textAlign = "center";
+  context.textBaseline = "alphabetic";
+  context.fillText(text, centerX, baseline);
+}
+
+function getTutorialRailHeight(steps, layoutScale, scale) {
+  return (steps.length > 1 ? 142 : 82) * layoutScale * scale;
+}
+
+function drawTutorialStepRail(steps, x, top, width, layoutScale, scale) {
+  if (!steps.length) return;
+  const height = getTutorialRailHeight(steps, layoutScale, scale);
+  context.save();
+  context.fillStyle = state.textColor;
+  context.strokeStyle = state.textColor;
+
+  if (steps.length === 1) {
+    roundedRectPath(context, x, top, width, height, height / 2);
+    context.globalAlpha = 0.12;
+    context.fill();
+    context.globalAlpha = 1;
+    const badgeRadius = 25 * layoutScale * scale;
+    const badgeX = x + 42 * layoutScale * scale;
+    const centerY = top + height / 2;
+    context.beginPath();
+    context.arc(badgeX, centerY, badgeRadius, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = state.cardColor;
+    context.font = fontString(900, 19 * layoutScale * scale, state.fontFamily);
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText("01", badgeX, centerY);
+    context.fillStyle = state.textColor;
+    context.textAlign = "left";
+    context.font = fontString(800, 28 * layoutScale * scale, state.fontFamily);
+    context.fillText(
+      steps[0],
+      badgeX + 43 * layoutScale * scale,
+      centerY + 1 * layoutScale * scale,
+    );
+    context.restore();
+    return;
+  }
+
+  const cellWidth = width / steps.length;
+  const circleRadius = 34 * layoutScale * scale;
+  const circleY = top + circleRadius;
+  const firstCenterX = x + cellWidth / 2;
+  const lastCenterX = x + width - cellWidth / 2;
+  context.globalAlpha = 0.34;
+  context.lineWidth = 3 * layoutScale * scale;
+  context.beginPath();
+  context.moveTo(firstCenterX + circleRadius, circleY);
+  context.lineTo(lastCenterX - circleRadius, circleY);
+  context.stroke();
+  context.globalAlpha = 1;
+
+  steps.forEach((step, index) => {
+    const centerX = x + cellWidth * (index + 0.5);
+    context.fillStyle = state.textColor;
+    context.beginPath();
+    context.arc(centerX, circleY, circleRadius, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = state.cardColor;
+    context.font = fontString(900, 25 * layoutScale * scale, state.fontFamily);
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText(String(index + 1).padStart(2, "0"), centerX, circleY);
+    context.fillStyle = state.textColor;
+    drawCenteredFittedText(
+      step,
+      centerX,
+      top + 121 * layoutScale * scale,
+      cellWidth - 22 * layoutScale * scale,
+      30 * layoutScale * scale,
+      850,
+    );
+  });
+  context.restore();
+}
+
+function renderTutorialContent({
+  cardX,
+  cardY,
+  cardWidth,
+  cardHeight,
+  padding,
+  photoWindow,
+  layoutScale,
+}) {
+  const contentX = cardX + padding;
+  const maxContentWidth = cardWidth - padding * 2;
+  drawTemplateCornerLabels({
+    cardX,
+    cardY,
+    cardWidth,
+    padding,
+    maxContentWidth,
+    layoutScale,
+  });
+
+  const typography = getTypographyProfile("tutorial");
+  const mainSize = Number(state.mainSize) * layoutScale;
+  const titleLines = wrapTitleLinesForEmphasis(
+    splitLines(state.titleText),
+    mainSize,
+    maxContentWidth,
+    typography,
+  );
+  let mainBlock = createBlock(
+    titleLines,
+    getTitleDesiredSizes(titleLines, mainSize, typography),
+    {
+      weight: typography.titleWeight,
+      family: state.titleFontFamily,
+      maxWidth: maxContentWidth,
+      minScale: 0.46,
+      fitMode: "perLine",
+      letterSpacingEm: typography.letterSpacingEm,
+      maxLineSizeRatio: typography.maxLineSizeRatio,
+      lineHeight: Number(state.mainLineHeight),
+    },
+  );
+  const steps = parseTutorialSteps(state.subtitleText);
+  const hasEyebrow = Boolean(state.upperText.trim());
+  let scale = 1;
+  let eyebrowHeight = hasEyebrow ? 58 * layoutScale : 0;
+  let railHeight = getTutorialRailHeight(steps, layoutScale, scale);
+  let firstGap = (hasEyebrow ? 28 : 0) * layoutScale;
+  let secondGap = (steps.length ? 34 : 0) * layoutScale;
+  let stackHeight =
+    eyebrowHeight + mainBlock.height + railHeight + firstGap + secondGap;
+  const isMediaFirst = state.photoLayout === "album" && photoWindow;
+  const regionTop = isMediaFirst
+    ? photoWindow.y + photoWindow.height + 36 * layoutScale
+    : cardY + 158 * layoutScale;
+  const regionBottom = isMediaFirst
+    ? cardY + cardHeight - 88 * layoutScale
+    : photoWindow
+      ? photoWindow.y - 38 * layoutScale
+      : cardY + cardHeight - 88 * layoutScale;
+  const availableHeight = Math.max(1, regionBottom - regionTop);
+
+  if (stackHeight > availableHeight) {
+    scale = Math.max(0.64, availableHeight / stackHeight);
+    mainBlock = scaleTextBlock(mainBlock, scale);
+    eyebrowHeight *= scale;
+    railHeight = getTutorialRailHeight(steps, layoutScale, scale);
+    firstGap *= scale;
+    secondGap *= scale;
+    stackHeight =
+      eyebrowHeight + mainBlock.height + railHeight + firstGap + secondGap;
+  }
+
+  let cursorY =
+    getOpticalStackTop(regionTop, regionBottom, stackHeight, 0.5) +
+    Number(state.verticalOffset) * layoutScale;
+  cursorY = clamp(cursorY, regionTop, Math.max(regionTop, regionBottom - stackHeight));
+  if (hasEyebrow) {
+    drawEyebrowChip(
+      state.upperText,
+      contentX,
+      cursorY,
+      maxContentWidth,
+      layoutScale,
+      scale,
+      false,
+    );
+    cursorY += eyebrowHeight + firstGap;
+  }
+  drawBlock(mainBlock, contentX, cursorY);
+  cursorY += mainBlock.height + secondGap;
+  drawTutorialStepRail(steps, contentX, cursorY, maxContentWidth, layoutScale, scale);
+
+  drawSpacedText(
+    state.footerText.trim(),
+    contentX,
+    cardY + cardHeight - 37 * layoutScale,
+    maxContentWidth,
+    state.footerAlign,
+    layoutScale,
+  );
+}
+
+function renderProductContent({
+  cardX,
+  cardY,
+  cardWidth,
+  cardHeight,
+  padding,
+  photoWindow,
+  layoutScale,
+}) {
+  const contentX = cardX + padding;
+  const maxContentWidth = cardWidth - padding * 2;
+  drawTemplateCornerLabels({
+    cardX,
+    cardY,
+    cardWidth,
+    padding,
+    maxContentWidth,
+    layoutScale,
+  });
+
+  const typography = getTypographyProfile("product");
+  const mainSize = Number(state.mainSize) * layoutScale;
+  const subtitleSize = Number(state.subtitleSize) * layoutScale;
+  const titleLines = wrapTitleLinesForEmphasis(
+    splitLines(state.titleText),
+    mainSize,
+    maxContentWidth,
+    typography,
+  );
+  let mainBlock = createBlock(
+    titleLines,
+    getTitleDesiredSizes(titleLines, mainSize, typography),
+    {
+      weight: typography.titleWeight,
+      family: state.titleFontFamily,
+      maxWidth: maxContentWidth,
+      minScale: 0.46,
+      fitMode: "perLine",
+      letterSpacingEm: typography.letterSpacingEm,
+      maxLineSizeRatio: typography.maxLineSizeRatio,
+      lineHeight: Number(state.mainLineHeight),
+    },
+  );
+  const subtitleLines = splitLines(state.subtitleText);
+  let subtitleBlock = createBlock(
+    subtitleLines,
+    subtitleLines.map(() => subtitleSize),
+    {
+      weight: 800,
+      family: state.fontFamily,
+      maxWidth: maxContentWidth,
+      minScale: 0.58,
+      lineGap: subtitleSize * 0.18,
+      alpha: typography.subtitleAlpha,
+    },
+  );
+  const hasEyebrow = Boolean(state.upperText.trim());
+  let scale = 1;
+  let eyebrowHeight = hasEyebrow ? 58 * layoutScale : 0;
+  let firstGap = (hasEyebrow ? 28 : 0) * layoutScale;
+  let secondGap = (subtitleBlock.height ? 26 : 0) * layoutScale;
+  let stackHeight =
+    eyebrowHeight + mainBlock.height + subtitleBlock.height + firstGap + secondGap;
+  const isMediaFirst = state.photoLayout === "album" && photoWindow;
+  const regionTop = isMediaFirst
+    ? photoWindow.y + photoWindow.height + 36 * layoutScale
+    : cardY + 158 * layoutScale;
+  const regionBottom = isMediaFirst
+    ? cardY + cardHeight - 88 * layoutScale
+    : photoWindow
+      ? photoWindow.y - 34 * layoutScale
+      : cardY + cardHeight - 88 * layoutScale;
+  const availableHeight = Math.max(1, regionBottom - regionTop);
+
+  if (stackHeight > availableHeight) {
+    // 产品封面先压缩眉题、解释文字和间距；标题只有在副信息已经让位后才缩小。
+    const supportingHeight = eyebrowHeight + subtitleBlock.height + firstGap + secondGap;
+    const overflow = stackHeight - availableHeight;
+    scale = supportingHeight > 0
+      ? Math.max(0.76, 1 - overflow / supportingHeight)
+      : 1;
+    subtitleBlock = scaleTextBlock(subtitleBlock, scale);
+    eyebrowHeight *= scale;
+    firstGap *= scale;
+    secondGap *= scale;
+    stackHeight =
+      eyebrowHeight + mainBlock.height + subtitleBlock.height + firstGap + secondGap;
+
+    if (stackHeight > availableHeight) {
+      const availableTitleHeight = Math.max(
+        1,
+        availableHeight - eyebrowHeight - subtitleBlock.height - firstGap - secondGap,
+      );
+      mainBlock = scaleTextBlock(
+        mainBlock,
+        Math.max(0.62, availableTitleHeight / mainBlock.height),
+      );
+      stackHeight =
+        eyebrowHeight + mainBlock.height + subtitleBlock.height + firstGap + secondGap;
+    }
+
+    if (stackHeight > availableHeight) {
+      const finalScale = availableHeight / stackHeight;
+      mainBlock = scaleTextBlock(mainBlock, finalScale);
+      subtitleBlock = scaleTextBlock(subtitleBlock, finalScale);
+      eyebrowHeight *= finalScale;
+      firstGap *= finalScale;
+      secondGap *= finalScale;
+      scale *= finalScale;
+      stackHeight = availableHeight;
+    }
+  }
+
+  let cursorY =
+    getOpticalStackTop(regionTop, regionBottom, stackHeight, 0.46) +
+    Number(state.verticalOffset) * layoutScale;
+  cursorY = clamp(cursorY, regionTop, Math.max(regionTop, regionBottom - stackHeight));
+  if (hasEyebrow) {
+    drawEyebrowChip(
+      state.upperText,
+      contentX,
+      cursorY,
+      maxContentWidth,
+      layoutScale,
+      scale,
+      true,
+    );
+    cursorY += eyebrowHeight + firstGap;
+  }
+  drawBlock(mainBlock, contentX, cursorY);
+  cursorY += mainBlock.height + secondGap;
+  drawBlock(subtitleBlock, contentX, cursorY);
+
+  drawSpacedText(
+    state.footerText.trim(),
+    contentX,
+    cardY + cardHeight - 37 * layoutScale,
+    maxContentWidth,
+    state.footerAlign,
+    layoutScale,
+  );
+}
+
+function renderConversationContent({
+  cardX,
+  cardY,
+  cardWidth,
+  cardHeight,
+  padding,
+  layoutScale,
+}) {
+  const contentX = cardX + padding;
+  const maxContentWidth = cardWidth - padding * 2;
+  const centerX = cardX + cardWidth / 2;
+  drawTemplateCornerLabels({
+    cardX,
+    cardY,
+    cardWidth,
+    padding,
+    maxContentWidth,
+    layoutScale,
+  });
+
+  const panelHeight = 250 * layoutScale;
+  const panelY = cardY + cardHeight - 390 * layoutScale;
+  const panelRadius = 38 * layoutScale;
+  const typography = getTypographyProfile("experience");
+  const mainSize = Number(state.mainSize) * layoutScale;
+  const titleLines = wrapTitleLinesForEmphasis(
+    splitLines(state.titleText),
+    mainSize,
+    maxContentWidth,
+    typography,
+  );
+  let mainBlock = createBlock(
+    titleLines,
+    getTitleDesiredSizes(titleLines, mainSize, typography),
+    {
+      weight: typography.titleWeight,
+      family: state.titleFontFamily,
+      maxWidth: maxContentWidth,
+      minScale: 0.44,
+      fitMode: "perLine",
+      letterSpacingEm: typography.letterSpacingEm,
+      maxLineSizeRatio: 1.34,
+      lineHeight: Number(state.mainLineHeight),
+    },
+  );
+
+  const upperText = state.upperText.trim();
+  const upperSize = Math.min(Number(state.upperSize), 38) * layoutScale;
+  let upperHeight = upperText ? upperSize * 1.1 : 0;
+  let upperGap = upperText ? 34 * layoutScale : 0;
+  let stackHeight = upperHeight + upperGap + mainBlock.height;
+  const regionTop = cardY + 176 * layoutScale;
+  const regionBottom = panelY - 64 * layoutScale;
+  const availableHeight = Math.max(1, regionBottom - regionTop);
+  if (stackHeight > availableHeight) {
+    const fit = availableHeight / stackHeight;
+    mainBlock = scaleTextBlock(mainBlock, fit);
+    upperHeight *= fit;
+    upperGap *= fit;
+    stackHeight = availableHeight;
+  }
+
+  let cursorY =
+    getOpticalStackTop(regionTop, regionBottom, stackHeight, 0.46) +
+    Number(state.verticalOffset) * layoutScale;
+  cursorY = clamp(cursorY, regionTop, Math.max(regionTop, regionBottom - stackHeight));
+  if (upperText) {
+    context.save();
+    context.fillStyle = state.textColor;
+    context.globalAlpha = typography.upperAlpha;
+    drawCenteredFittedText(
+      upperText,
+      centerX,
+      cursorY + upperHeight * 0.8,
+      maxContentWidth,
+      upperHeight,
+      750,
+    );
+    context.restore();
+    cursorY += upperHeight + upperGap;
+  }
+  drawCenteredBlock(mainBlock, centerX, cursorY);
+
+  // Prompt 卡保持独立于标题区域：用户只需修改下方副标题，就能得到类似对话输入框的内容承接。
+  context.save();
+  roundedRectPath(
+    context,
+    contentX,
+    panelY,
+    maxContentWidth,
+    panelHeight,
+    panelRadius,
+  );
+  context.fillStyle = normalizeHex(state.visualColor) || themes.openaiMono.visualColor;
+  context.fill();
+  context.strokeStyle = state.textColor;
+  context.globalAlpha = 0.18;
+  context.lineWidth = 2 * layoutScale;
+  context.stroke();
+  context.globalAlpha = 1;
+
+  context.fillStyle = state.textColor;
+  context.globalAlpha = 0.58;
+  context.font = fontString(800, 18 * layoutScale, "grotesk");
+  context.textAlign = "left";
+  context.textBaseline = "alphabetic";
+  context.fillText("PROMPT", contentX + 32 * layoutScale, panelY + 37 * layoutScale);
+  context.restore();
+
+  const subtitleSize = Math.min(Number(state.subtitleSize), 38) * layoutScale;
+  let promptBlock = createBlock(
+    splitLines(state.subtitleText),
+    splitLines(state.subtitleText).map(() => subtitleSize),
+    {
+      weight: 700,
+      family: state.fontFamily,
+      maxWidth: maxContentWidth - 64 * layoutScale,
+      minScale: 0.58,
+      lineGap: subtitleSize * 0.25,
+      alpha: typography.subtitleAlpha,
+    },
+  );
+  const promptTextHeight = panelHeight - 116 * layoutScale;
+  if (promptBlock.height > promptTextHeight) {
+    promptBlock = scaleTextBlock(promptBlock, promptTextHeight / promptBlock.height);
+  }
+  drawBlock(promptBlock, contentX + 32 * layoutScale, panelY + 57 * layoutScale);
+
+  const controlY = panelY + panelHeight - 43 * layoutScale;
+  const controlRadius = 23 * layoutScale;
+  context.save();
+  context.strokeStyle = state.textColor;
+  context.fillStyle = state.textColor;
+  context.lineWidth = 2.5 * layoutScale;
+  context.globalAlpha = 0.76;
+  context.beginPath();
+  context.arc(contentX + 42 * layoutScale, controlY, controlRadius, 0, Math.PI * 2);
+  context.stroke();
+  context.beginPath();
+  context.moveTo(contentX + 32 * layoutScale, controlY);
+  context.lineTo(contentX + 52 * layoutScale, controlY);
+  context.moveTo(contentX + 42 * layoutScale, controlY - 10 * layoutScale);
+  context.lineTo(contentX + 42 * layoutScale, controlY + 10 * layoutScale);
+  context.stroke();
+
+  const sendX = contentX + maxContentWidth - 42 * layoutScale;
+  context.globalAlpha = 1;
+  context.beginPath();
+  context.arc(sendX, controlY, controlRadius, 0, Math.PI * 2);
+  context.fill();
+  context.strokeStyle = state.cardColor;
+  context.lineWidth = 3 * layoutScale;
+  context.beginPath();
+  context.moveTo(sendX - 9 * layoutScale, controlY + 5 * layoutScale);
+  context.lineTo(sendX, controlY - 5 * layoutScale);
+  context.lineTo(sendX + 9 * layoutScale, controlY + 5 * layoutScale);
+  context.stroke();
+  context.restore();
+
+  drawSpacedText(
+    state.footerText.trim(),
+    contentX,
+    cardY + cardHeight - 36 * layoutScale,
+    maxContentWidth,
+    state.footerAlign,
+    layoutScale,
+  );
 }
 
 function drawDeepDiveVisual(metrics, layoutScale) {
@@ -898,129 +2090,85 @@ function drawDeepDiveVisual(metrics, layoutScale) {
   context.fillStyle = normalizeHex(state.visualColor) || "#D8D6E2";
   context.fillRect(metrics.x, metrics.y, metrics.width, metrics.height);
 
-  // 深度文章的默认视觉只承担“技术主题”提示，不加入可变装饰，避免与标题争夺注意力。
-  const centerX = metrics.x + metrics.width * 0.58;
-  const centerY = metrics.y + metrics.height * 0.5;
-  const polygonRadius = Math.min(metrics.width, metrics.height) * 0.23;
-  context.beginPath();
-  for (let index = 0; index < 7; index += 1) {
-    const angle = -Math.PI / 2 + (index / 7) * Math.PI * 2;
-    const radius = polygonRadius * (index % 2 === 0 ? 1 : 0.86);
-    const x = centerX + Math.cos(angle) * radius;
-    const y = centerY + Math.sin(angle) * radius;
-    if (index === 0) context.moveTo(x, y);
-    else context.lineTo(x, y);
-  }
-  context.closePath();
-  context.fillStyle = state.cardColor;
-  context.fill();
-
+  // 借鉴 Claude 官网的温暖编辑感：用不规则曲线表达“思考路径”，不复刻品牌图标。
+  const accentColor = state.themeId === "claudeWarm" ? "#D97757" : state.cardColor;
   context.strokeStyle = state.textColor;
-  context.fillStyle = state.textColor;
-  context.lineWidth = 4 * layoutScale;
+  context.lineWidth = 8 * layoutScale;
   context.lineCap = "round";
   context.lineJoin = "round";
-
-  const tablet = {
-    x: metrics.x + metrics.width * 0.18,
-    y: metrics.y + metrics.height * 0.28,
-    width: metrics.width * 0.35,
-    height: metrics.height * 0.32,
-  };
-  roundedRectPath(
-    context,
-    tablet.x,
-    tablet.y,
-    tablet.width,
-    tablet.height,
-    24 * layoutScale,
-  );
-  context.stroke();
-  roundedRectPath(
-    context,
-    tablet.x + 28 * layoutScale,
-    tablet.y + 20 * layoutScale,
-    tablet.width - 52 * layoutScale,
-    tablet.height - 40 * layoutScale,
-    14 * layoutScale,
-  );
-  context.stroke();
-
-  const codeX = tablet.x + tablet.width * 0.28;
-  const codeY = tablet.y + tablet.height * 0.27;
+  context.globalAlpha = 0.92;
   context.beginPath();
-  context.moveTo(codeX, codeY);
-  context.lineTo(codeX - 14 * layoutScale, codeY + 14 * layoutScale);
-  context.lineTo(codeX, codeY + 28 * layoutScale);
-  context.moveTo(codeX + 34 * layoutScale, codeY);
-  context.lineTo(codeX + 48 * layoutScale, codeY + 14 * layoutScale);
-  context.lineTo(codeX + 34 * layoutScale, codeY + 28 * layoutScale);
-  context.stroke();
-  [0.53, 0.66, 0.79].forEach((position, index) => {
-    context.beginPath();
-    context.moveTo(tablet.x + tablet.width * 0.25, tablet.y + tablet.height * position);
-    context.lineTo(
-      tablet.x + tablet.width * (index === 1 ? 0.68 : 0.76),
-      tablet.y + tablet.height * position,
-    );
-    context.stroke();
-  });
-
-  const terminal = {
-    x: metrics.x + metrics.width * 0.6,
-    y: metrics.y + metrics.height * 0.58,
-    width: metrics.width * 0.25,
-    height: metrics.height * 0.22,
-  };
-  roundedRectPath(
-    context,
-    terminal.x,
-    terminal.y,
-    terminal.width,
-    terminal.height,
-    18 * layoutScale,
+  context.moveTo(metrics.x + metrics.width * 0.08, metrics.y + metrics.height * 0.72);
+  context.bezierCurveTo(
+    metrics.x + metrics.width * 0.18,
+    metrics.y + metrics.height * 0.2,
+    metrics.x + metrics.width * 0.43,
+    metrics.y + metrics.height * 0.12,
+    metrics.x + metrics.width * 0.49,
+    metrics.y + metrics.height * 0.47,
+  );
+  context.bezierCurveTo(
+    metrics.x + metrics.width * 0.55,
+    metrics.y + metrics.height * 0.84,
+    metrics.x + metrics.width * 0.78,
+    metrics.y + metrics.height * 0.84,
+    metrics.x + metrics.width * 0.9,
+    metrics.y + metrics.height * 0.28,
   );
   context.stroke();
+
+  context.globalAlpha = 0.54;
+  context.lineWidth = 4 * layoutScale;
   context.beginPath();
-  context.moveTo(terminal.x, terminal.y + terminal.height * 0.28);
-  context.lineTo(terminal.x + terminal.width, terminal.y + terminal.height * 0.28);
+  context.moveTo(metrics.x + metrics.width * 0.17, metrics.y + metrics.height * 0.84);
+  context.bezierCurveTo(
+    metrics.x + metrics.width * 0.28,
+    metrics.y + metrics.height * 0.56,
+    metrics.x + metrics.width * 0.25,
+    metrics.y + metrics.height * 0.28,
+    metrics.x + metrics.width * 0.43,
+    metrics.y + metrics.height * 0.22,
+  );
+  context.bezierCurveTo(
+    metrics.x + metrics.width * 0.65,
+    metrics.y + metrics.height * 0.14,
+    metrics.x + metrics.width * 0.72,
+    metrics.y + metrics.height * 0.47,
+    metrics.x + metrics.width * 0.84,
+    metrics.y + metrics.height * 0.66,
+  );
   context.stroke();
-  [0.09, 0.16, 0.23].forEach((position) => {
+
+  context.globalAlpha = 1;
+  context.fillStyle = accentColor;
+  [
+    [0.2, 0.26, 22],
+    [0.7, 0.28, 38],
+    [0.78, 0.7, 16],
+  ].forEach(([x, y, radius]) => {
     context.beginPath();
     context.arc(
-      terminal.x + terminal.width * position,
-      terminal.y + terminal.height * 0.14,
-      4 * layoutScale,
+      metrics.x + metrics.width * x,
+      metrics.y + metrics.height * y,
+      radius * layoutScale,
       0,
       Math.PI * 2,
     );
     context.fill();
   });
-  context.beginPath();
-  context.moveTo(terminal.x + terminal.width * 0.18, terminal.y + terminal.height * 0.5);
-  context.lineTo(terminal.x + terminal.width * 0.28, terminal.y + terminal.height * 0.62);
-  context.lineTo(terminal.x + terminal.width * 0.18, terminal.y + terminal.height * 0.74);
-  context.moveTo(terminal.x + terminal.width * 0.34, terminal.y + terminal.height * 0.74);
-  context.lineTo(terminal.x + terminal.width * 0.48, terminal.y + terminal.height * 0.74);
-  context.stroke();
 
+  context.strokeStyle = accentColor;
+  context.lineWidth = 6 * layoutScale;
   context.beginPath();
-  context.moveTo(tablet.x + tablet.width, tablet.y + tablet.height * 0.52);
+  context.moveTo(metrics.x + metrics.width * 0.09, metrics.y + metrics.height * 0.44);
   context.bezierCurveTo(
-    metrics.x + metrics.width * 0.68,
-    tablet.y + tablet.height * 0.46,
-    metrics.x + metrics.width * 0.76,
-    terminal.y - 36 * layoutScale,
-    terminal.x + terminal.width * 0.68,
-    terminal.y,
+    metrics.x + metrics.width * 0.12,
+    metrics.y + metrics.height * 0.37,
+    metrics.x + metrics.width * 0.15,
+    metrics.y + metrics.height * 0.36,
+    metrics.x + metrics.width * 0.2,
+    metrics.y + metrics.height * 0.38,
   );
-  context.stroke();
-  const arrowX = terminal.x + terminal.width * 0.68;
-  const arrowY = terminal.y;
-  context.beginPath();
-  context.moveTo(arrowX - 12 * layoutScale, arrowY - 14 * layoutScale);
-  context.lineTo(arrowX, arrowY);
-  context.lineTo(arrowX + 12 * layoutScale, arrowY - 14 * layoutScale);
   context.stroke();
   context.restore();
 }
@@ -1032,11 +2180,16 @@ function renderDeepDiveContent({
   cardHeight,
   padding,
   visualWindow,
+  visualFirst,
   layoutScale,
 }) {
   const contentX = cardX + padding;
   const maxContentWidth = cardWidth - padding * 2;
-  const metadataBaseline = visualWindow.y + visualWindow.height + 76 * layoutScale;
+  const isMediaFirst = visualFirst ?? (state.photoLayout === "album" && visualWindow);
+  // 编辑杂志支持纯文字、下置证据图和上置大图；元信息始终贴近接下来要读的正文。
+  const metadataBaseline = isMediaFirst
+    ? visualWindow.y + visualWindow.height + 70 * layoutScale
+    : cardY + 105 * layoutScale;
   drawCornerLabel(
     state.topLeft.trim(),
     contentX,
@@ -1068,15 +2221,25 @@ function renderDeepDiveContent({
   const mainSize = Number(state.mainSize) * layoutScale;
   const upperSize = Number(state.upperSize) * layoutScale;
   const subtitleSize = Number(state.subtitleSize) * layoutScale;
-  let mainBlock = createBlock(
+  const typography = getTypographyProfile("deepDive");
+  const titleLines = wrapTitleLinesForEmphasis(
     splitLines(state.titleText),
-    splitLines(state.titleText).map((_, index) => (index === 0 ? mainSize * 0.84 : mainSize)),
+    mainSize,
+    maxContentWidth,
+    typography,
+  );
+  let mainBlock = createBlock(
+    titleLines,
+    getTitleDesiredSizes(titleLines, mainSize, typography),
     {
-      weight: 700,
+      weight: typography.titleWeight,
       family: state.titleFontFamily,
       maxWidth: maxContentWidth,
-      minScale: 0.52,
-      lineGap: mainSize * 0.08,
+      minScale: 0.46,
+      fitMode: "perLine",
+      letterSpacingEm: typography.letterSpacingEm,
+      maxLineSizeRatio: typography.maxLineSizeRatio,
+      lineHeight: Number(state.mainLineHeight),
     },
   );
   let proofBlock = createBlock(
@@ -1088,6 +2251,7 @@ function renderDeepDiveContent({
       maxWidth: maxContentWidth,
       minScale: 0.62,
       lineGap: upperSize * 0.24,
+      alpha: typography.upperAlpha,
     },
   );
   let subtitleBlock = createBlock(
@@ -1099,13 +2263,17 @@ function renderDeepDiveContent({
       maxWidth: maxContentWidth,
       minScale: 0.58,
       lineGap: subtitleSize * 0.25,
+      alpha: typography.subtitleAlpha,
     },
   );
 
   let titleTop = dividerY + 46 * layoutScale;
-  let firstGap = 34 * layoutScale;
-  let secondGap = 42 * layoutScale;
-  const safeBottom = cardY + cardHeight - 72 * layoutScale;
+  let firstGap = 22 * layoutScale;
+  let secondGap = 28 * layoutScale;
+  const safeBottom =
+    visualWindow && !isMediaFirst
+      ? visualWindow.y - 44 * layoutScale
+      : cardY + cardHeight - 72 * layoutScale;
   const requestedHeight =
     mainBlock.height +
     proofBlock.height +
@@ -1120,6 +2288,7 @@ function renderDeepDiveContent({
       ...block,
       sizes: block.sizes.map((size) => size * scale),
       lineGap: block.lineGap * scale,
+      lineGaps: block.lineGaps.map((gap) => gap * scale),
       height: block.height * scale,
     });
     mainBlock = scaleBlock(mainBlock);
@@ -1140,6 +2309,203 @@ function renderDeepDiveContent({
     titleTop += secondGap;
     drawBlock(subtitleBlock, contentX, titleTop);
   }
+
+  drawSpacedText(
+    state.footerText.trim(),
+    contentX,
+    cardY + cardHeight - 36 * layoutScale,
+    maxContentWidth,
+    state.footerAlign,
+    layoutScale,
+  );
+}
+
+function renderModelLaunchContent({
+  cardX,
+  cardY,
+  cardWidth,
+  cardHeight,
+  padding,
+  photoWindow,
+  layoutScale,
+}) {
+  const contentX = cardX + padding;
+  const maxContentWidth = cardWidth - padding * 2;
+  const isSupportingPhoto = photoWindow && state.photoLayout === "editorial";
+  const heroWindow =
+    photoWindow ||
+    {
+      x: contentX,
+      y: cardY + 120 * layoutScale,
+      width: maxContentWidth,
+      height: 500 * layoutScale,
+      radius: 38 * layoutScale,
+    };
+
+  context.save();
+  roundedRectPath(
+    context,
+    heroWindow.x,
+    heroWindow.y,
+    heroWindow.width,
+    heroWindow.height,
+    heroWindow.radius,
+  );
+  context.clip();
+  if (photoWindow) {
+    const photoShade = context.createLinearGradient(
+      heroWindow.x,
+      heroWindow.y,
+      heroWindow.x,
+      heroWindow.y + heroWindow.height,
+    );
+    photoShade.addColorStop(0, "rgba(0, 0, 0, 0.32)");
+    photoShade.addColorStop(0.42, "rgba(0, 0, 0, 0.02)");
+    photoShade.addColorStop(1, "rgba(0, 0, 0, 0.7)");
+    context.fillStyle = photoShade;
+    context.fillRect(heroWindow.x, heroWindow.y, heroWindow.width, heroWindow.height);
+  } else {
+    context.fillStyle = normalizeHex(state.visualColor) || themes.openaiMono.visualColor;
+    context.fillRect(heroWindow.x, heroWindow.y, heroWindow.width, heroWindow.height);
+    context.strokeStyle = state.textColor;
+    context.globalAlpha = 0.18;
+    context.lineWidth = 3 * layoutScale;
+    context.beginPath();
+    context.arc(
+      heroWindow.x + heroWindow.width * 0.2,
+      heroWindow.y + heroWindow.height * 0.08,
+      heroWindow.height * 0.62,
+      -0.35,
+      Math.PI * 1.25,
+    );
+    context.stroke();
+    context.globalAlpha = 1;
+  }
+
+  const heroInk = photoWindow ? "#FFFFFF" : state.textColor;
+  const label = state.topLeft.trim();
+  if (label) {
+    let labelSize = 24 * layoutScale;
+    context.font = fontString(800, labelSize, "grotesk");
+    const labelMaxWidth = heroWindow.width * 0.62;
+    const measured = context.measureText(label).width;
+    if (measured > labelMaxWidth) labelSize *= labelMaxWidth / measured;
+    context.font = fontString(800, labelSize, "grotesk");
+    context.fillStyle = heroInk;
+    context.textAlign = "left";
+    context.textBaseline = "alphabetic";
+    context.fillText(
+      label,
+      heroWindow.x + 30 * layoutScale,
+      heroWindow.y + 48 * layoutScale,
+    );
+  }
+
+  const issue = state.topRight.trim() || "5.6";
+  let issueSize = Math.min(238 * layoutScale, heroWindow.height * 0.48);
+  context.font = fontString(900, issueSize, state.titleFontFamily);
+  const issueMaxWidth = heroWindow.width - 56 * layoutScale;
+  const issueWidth = context.measureText(issue).width;
+  if (issueWidth > issueMaxWidth) issueSize *= issueMaxWidth / issueWidth;
+  context.font = fontString(900, issueSize, state.titleFontFamily);
+  context.fillStyle = heroInk;
+  context.textAlign = "right";
+  context.textBaseline = "alphabetic";
+  context.fillText(
+    issue,
+    heroWindow.x + heroWindow.width - 28 * layoutScale,
+    heroWindow.y + heroWindow.height - 18 * layoutScale,
+  );
+  context.restore();
+
+  const typography = getTypographyProfile("hardwareVideo");
+  const mainSize = Number(state.mainSize) * layoutScale;
+  const upperSize = Math.min(Number(state.upperSize), 32) * layoutScale;
+  const subtitleSize = Number(state.subtitleSize) * layoutScale;
+  const titleLines = wrapTitleLinesForEmphasis(
+    splitLines(state.titleText),
+    mainSize,
+    maxContentWidth,
+    typography,
+  );
+  let mainBlock = createBlock(
+    titleLines,
+    getTitleDesiredSizes(titleLines, mainSize, typography),
+    {
+      weight: typography.titleWeight,
+      family: state.titleFontFamily,
+      maxWidth: maxContentWidth,
+      minScale: 0.46,
+      fitMode: "perLine",
+      letterSpacingEm: typography.letterSpacingEm,
+      maxLineSizeRatio: typography.maxLineSizeRatio,
+      lineHeight: Number(state.mainLineHeight),
+    },
+  );
+  let upperBlock = createBlock(
+    splitLines(state.upperText),
+    splitLines(state.upperText).map(() => upperSize),
+    {
+      weight: 800,
+      family: state.fontFamily,
+      maxWidth: maxContentWidth,
+      minScale: 0.62,
+      lineGap: upperSize * 0.2,
+      alpha: typography.upperAlpha,
+    },
+  );
+  let subtitleBlock = createBlock(
+    splitLines(state.subtitleText),
+    splitLines(state.subtitleText).map(() => subtitleSize),
+    {
+      weight: 700,
+      family: state.fontFamily,
+      maxWidth: maxContentWidth,
+      minScale: 0.58,
+      lineGap: subtitleSize * 0.24,
+      alpha: typography.subtitleAlpha,
+    },
+  );
+
+  let firstGap = upperBlock.height ? 18 * layoutScale : 0;
+  let secondGap = subtitleBlock.height ? 22 * layoutScale : 0;
+  let stackHeight =
+    upperBlock.height +
+    mainBlock.height +
+    subtitleBlock.height +
+    firstGap +
+    secondGap;
+  // 图文佐证把标题放在照片上方；大图主导与纯文字发布卡则先展示主视觉。
+  const regionTop = isSupportingPhoto
+    ? cardY + 154 * layoutScale
+    : heroWindow.y + heroWindow.height + 34 * layoutScale;
+  const regionBottom = isSupportingPhoto
+    ? heroWindow.y - 36 * layoutScale
+    : cardY + cardHeight - 74 * layoutScale;
+  const availableHeight = Math.max(1, regionBottom - regionTop);
+  if (stackHeight > availableHeight) {
+    const fit = availableHeight / stackHeight;
+    upperBlock = scaleTextBlock(upperBlock, fit);
+    mainBlock = scaleTextBlock(mainBlock, fit);
+    subtitleBlock = scaleTextBlock(subtitleBlock, fit);
+    firstGap *= fit;
+    secondGap *= fit;
+    stackHeight = availableHeight;
+  }
+
+  const preferredTop = regionTop + Number(state.verticalOffset) * layoutScale;
+  let cursorY = clamp(
+    preferredTop,
+    regionTop,
+    Math.max(regionTop, regionBottom - stackHeight),
+  );
+  if (upperBlock.height) {
+    drawBlock(upperBlock, contentX, cursorY);
+    cursorY += upperBlock.height + firstGap;
+  }
+  drawBlock(mainBlock, contentX, cursorY);
+  cursorY += mainBlock.height + secondGap;
+  drawBlock(subtitleBlock, contentX, cursorY);
 
   drawSpacedText(
     state.footerText.trim(),
@@ -1181,13 +2547,43 @@ function renderPoster() {
   context.fill();
 
   const isDeepDive = state.noteType === "deepDive";
-  const visualWindow =
-    uploadedPhoto || isDeepDive
-      ? getPhotoWindowMetrics(cardX, cardY, cardWidth, cardHeight, padding, layoutScale)
+  const isModelLaunch = state.noteType === "hardwareVideo";
+  const isTutorial = state.noteType === "tutorial";
+  const isProduct = state.noteType === "product";
+  const hasPhotoMode = state.contentMode === "photo";
+  const samplePhoto =
+    editorialSamplePhoto.complete && editorialSamplePhoto.naturalWidth > 0
+      ? editorialSamplePhoto
       : null;
-  const photoWindow = uploadedPhoto ? visualWindow : null;
+  const displayPhoto = hasPhotoMode ? uploadedPhoto || samplePhoto : null;
+  const photoWindow = hasPhotoMode
+    ? getPhotoWindowMetrics(cardX, cardY, cardWidth, cardHeight, padding, layoutScale)
+    : null;
+  if (state.noteType === "experience" && !photoWindow) {
+    renderConversationContent({
+      cardX,
+      cardY,
+      cardWidth,
+      cardHeight,
+      padding,
+      layoutScale,
+    });
+    syncPhotoTransformOverlay(null);
+    renderFeedPreview(canvasWidth, canvasHeight);
+    return;
+  }
   if (isDeepDive) {
-    if (photoWindow) drawPhotoWindow(photoWindow);
+    // 无照片时也保留一个上置视觉区，让“编辑杂志”与普通大字封面有明确结构差异。
+    const visualWindow =
+      photoWindow ||
+      {
+        x: contentX,
+        y: cardY + 112 * layoutScale,
+        width: maxContentWidth,
+        height: 360 * layoutScale,
+        radius: 36 * layoutScale,
+      };
+    if (photoWindow && displayPhoto) drawPhotoWindow(photoWindow, displayPhoto);
     else drawDeepDiveVisual(visualWindow, layoutScale);
     renderDeepDiveContent({
       cardX,
@@ -1196,13 +2592,65 @@ function renderPoster() {
       cardHeight,
       padding,
       visualWindow,
+      visualFirst: !photoWindow || state.photoLayout === "album",
       layoutScale,
     });
     syncPhotoTransformOverlay(photoWindow);
     renderFeedPreview(canvasWidth, canvasHeight);
     return;
   }
-  if (photoWindow) drawPhotoWindow(photoWindow);
+  if (isModelLaunch) {
+    if (photoWindow) {
+      if (displayPhoto) drawPhotoWindow(photoWindow, displayPhoto);
+      else drawSamplePhotoFallback(photoWindow);
+    }
+    renderModelLaunchContent({
+      cardX,
+      cardY,
+      cardWidth,
+      cardHeight,
+      padding,
+      photoWindow,
+      layoutScale,
+    });
+    syncPhotoTransformOverlay(photoWindow);
+    renderFeedPreview(canvasWidth, canvasHeight);
+    return;
+  }
+  if (photoWindow) {
+    if (displayPhoto) drawPhotoWindow(photoWindow, displayPhoto);
+    else drawDeepDiveVisual(photoWindow, layoutScale);
+  }
+
+  if (isTutorial) {
+    renderTutorialContent({
+      cardX,
+      cardY,
+      cardWidth,
+      cardHeight,
+      padding,
+      photoWindow,
+      layoutScale,
+    });
+    syncPhotoTransformOverlay(photoWindow);
+    renderFeedPreview(canvasWidth, canvasHeight);
+    return;
+  }
+
+  if (isProduct) {
+    renderProductContent({
+      cardX,
+      cardY,
+      cardWidth,
+      cardHeight,
+      padding,
+      photoWindow,
+      layoutScale,
+    });
+    syncPhotoTransformOverlay(photoWindow);
+    renderFeedPreview(canvasWidth, canvasHeight);
+    return;
+  }
 
   const cornerBaseline = cardY + 105 * layoutScale;
   drawCornerLabel(
@@ -1223,15 +2671,19 @@ function renderPoster() {
   );
 
   const upperLines = splitLines(state.upperText);
-  const titleLines = splitLines(state.titleText);
   const subtitleLines = splitLines(state.subtitleText);
 
-  const isAlbumLayout = state.photoLayout === "album" && photoWindow;
-  const upperSize =
-    (isAlbumLayout ? Math.min(Number(state.upperSize), 32) : Number(state.upperSize)) *
-    layoutScale;
+  const typography = getTypographyProfile();
+  const isMediaFirstLayout = state.photoLayout === "album" && photoWindow;
+  const upperSize = Number(state.upperSize) * layoutScale;
   const mainSize = Number(state.mainSize) * layoutScale;
   const subtitleSize = Number(state.subtitleSize) * layoutScale;
+  const titleLines = wrapTitleLinesForEmphasis(
+    splitLines(state.titleText),
+    mainSize,
+    maxContentWidth,
+    typography,
+  );
 
   const upperBlock = createBlock(
     upperLines,
@@ -1242,19 +2694,21 @@ function renderPoster() {
       maxWidth: maxContentWidth,
       minScale: 0.62,
       lineGap: upperSize * 0.25,
+      alpha: typography.upperAlpha,
     },
   );
 
-  const mainSizes = titleLines.map((_, index) =>
-    isAlbumLayout || index > 0 ? mainSize : mainSize * 0.84,
-  );
+  const mainSizes = getTitleDesiredSizes(titleLines, mainSize, typography);
   const mainBlock = createBlock(titleLines, mainSizes, {
-    weight: 900,
+    weight: typography.titleWeight,
     family: state.titleFontFamily,
     maxWidth: maxContentWidth,
-    minScale: 0.54,
-    // 专辑焦点版采用一致字号；文字海报保留首行略小的编辑式层级。
-    lineGap: mainSize * (isAlbumLayout ? 0.08 : 0.1),
+    minScale: 0.46,
+    fitMode: "perLine",
+    letterSpacingEm: typography.letterSpacingEm,
+    maxLineSizeRatio: typography.maxLineSizeRatio,
+    // 行距直接跟随用户设置；不同字号的标题行会各自按比例换算真实间隙。
+    lineHeight: Number(state.mainLineHeight),
   });
 
   const subtitleBlock = createBlock(
@@ -1266,22 +2720,23 @@ function renderPoster() {
       maxWidth: maxContentWidth,
       minScale: 0.58,
       lineGap: subtitleSize * 0.28,
+      alpha: typography.subtitleAlpha,
     },
   );
 
   let activeBlocks = [upperBlock, mainBlock, subtitleBlock].filter((block) => block.height > 0);
-  let groupGap = (isAlbumLayout ? 18 : Number(state.groupGap)) * layoutScale;
+  let groupGap = (isMediaFirstLayout ? 18 : Number(state.groupGap)) * layoutScale;
   let groupHeight =
     activeBlocks.reduce((sum, block) => sum + block.height, 0) +
     Math.max(0, activeBlocks.length - 1) * groupGap;
 
-  const albumTextRegion = isAlbumLayout
-    ? getAlbumTextRegion(cardY, cardHeight, photoWindow, layoutScale)
+  const mediaTextRegion = isMediaFirstLayout
+    ? getMediaFirstTextRegion(cardY, cardHeight, photoWindow, layoutScale)
     : null;
-  const safeContentTop = albumTextRegion?.top ?? cardY + 158 * layoutScale;
-  // 文字海报把标题放在照片上方；专辑焦点版把标题与副标题放在大照片下方。
+  const safeContentTop = mediaTextRegion?.top ?? cardY + 158 * layoutScale;
+  // 图文佐证把标题放在照片上方；大图主导则先展示图片，再承接下方结论。
   const safeContentBottom =
-    albumTextRegion?.bottom ??
+    mediaTextRegion?.bottom ??
     (photoWindow ? photoWindow.y - 44 * layoutScale : cardY + cardHeight - 90 * layoutScale);
   const availableContentHeight = Math.max(1, safeContentBottom - safeContentTop);
 
@@ -1290,7 +2745,7 @@ function renderPoster() {
     const blockHeight = activeBlocks.reduce((sum, block) => sum + block.height, 0);
     const gapCount = activeBlocks.length - 1;
     const fittingGap = (availableContentHeight - blockHeight) / gapCount;
-    const minimumGap = (isAlbumLayout ? 14 : 24) * layoutScale;
+    const minimumGap = (isMediaFirstLayout ? 14 : 20) * layoutScale;
     groupGap = Math.max(minimumGap, Math.min(groupGap, fittingGap));
     groupHeight = blockHeight + gapCount * groupGap;
   }
@@ -1301,20 +2756,18 @@ function renderPoster() {
       ...block,
       sizes: block.sizes.map((size) => size * verticalScale),
       lineGap: block.lineGap * verticalScale,
+      lineGaps: block.lineGaps.map((gap) => gap * verticalScale),
       height: block.height * verticalScale,
     }));
     groupGap *= verticalScale;
     groupHeight = availableContentHeight;
   }
 
-  const groupCenter = photoWindow
-    ? safeContentTop +
-      availableContentHeight * 0.5 +
-      Number(state.verticalOffset) * layoutScale
-    : cardY + cardHeight * 0.485 + Number(state.verticalOffset) * layoutScale;
+  // 标题优先从安全区顶部开始，剩余留白集中到下方；避免上下各空一块把主标题夹小。
+  const preferredTop = safeContentTop + Number(state.verticalOffset) * layoutScale;
   let blockTop = Math.max(
     safeContentTop,
-    Math.min(groupCenter - groupHeight / 2, safeContentBottom - groupHeight),
+    Math.min(preferredTop, safeContentBottom - groupHeight),
   );
 
   activeBlocks.forEach((block, index) => {
@@ -1346,10 +2799,25 @@ function renderFeedPreview(canvasWidth, canvasHeight) {
   }
   feedPosterContext.clearRect(0, 0, previewWidth, previewHeight);
   feedPosterContext.drawImage(canvas, 0, 0, previewWidth, previewHeight);
+  renderFloatingPreview();
 
   const title = splitLines(state.titleText).join(" ").trim();
   feedPosterTitle.textContent = title || "未命名封面";
   ratioBadge.textContent = `小红书图文 · ${canvasWidth} × ${canvasHeight} · 3:4`;
+}
+
+function renderFloatingPreview() {
+  const previewWidth = 270;
+  const previewHeight = 360;
+  if (
+    floatingPreviewCanvas.width !== previewWidth ||
+    floatingPreviewCanvas.height !== previewHeight
+  ) {
+    floatingPreviewCanvas.width = previewWidth;
+    floatingPreviewCanvas.height = previewHeight;
+  }
+  floatingPreviewContext.clearRect(0, 0, previewWidth, previewHeight);
+  floatingPreviewContext.drawImage(canvas, 0, 0, previewWidth, previewHeight);
 }
 
 function scheduleRender({ persist = true } = {}) {
@@ -1411,13 +2879,17 @@ function applyPhotoFrame(frame, { persist = false } = {}) {
   state.photoFrameWidth = safeFrame.width;
   state.photoFrameHeight = safeFrame.height;
   updatePhotoGeometryStatus(safeFrame);
-  updateRangeOutputs();
+  // 触屏拖动期间只更新必要几何信息，松手后再计算字号上限，避免每帧重复测量文字。
+  if (persist) updateRangeOutputs();
   scheduleRender({ persist });
 }
 
 function syncPhotoLayoutButtons() {
   document.querySelectorAll("[data-photo-layout]").forEach((button) => {
-    const isActive = button.dataset.photoLayout === state.photoLayout;
+    const isActive =
+      state.contentMode === "text"
+        ? button.dataset.photoLayout === "text"
+        : button.dataset.photoLayout === state.photoLayout;
     button.classList.toggle("is-active", isActive);
     button.setAttribute("aria-pressed", String(isActive));
   });
@@ -1454,16 +2926,33 @@ function setPhotoEditMode(mode, { notify = true } = {}) {
 }
 
 function applyPhotoLayoutPreset(layout, { notify = true } = {}) {
+  if (layout === "text") {
+    state.contentMode = "text";
+    photoTransformControls.hidden = true;
+    photoTransformOverlay.hidden = true;
+    if (!uploadedPhoto) photoStatus.textContent = "纯文字模式 · 未选择照片";
+    else photoStatus.textContent = "照片已保留，切回图文后继续使用";
+    markStyleCustomized();
+    syncPhotoLayoutButtons();
+    scheduleRender();
+    if (notify) showToast("已切换为纯文字，照片不会丢失");
+    return;
+  }
+
   const preset = photoLayoutPresets[layout];
   if (!preset) return;
 
+  state.contentMode = "photo";
   state.photoLayout = layout;
   Object.assign(state, preset);
+  photoTransformControls.hidden = !uploadedPhoto;
+  if (!uploadedPhoto) photoStatus.textContent = "当前显示本地示例图，上传后立即替换";
+  markStyleCustomized();
   syncPhotoLayoutButtons();
   updateRangeOutputs();
   scheduleRender();
   if (notify) {
-    showToast(layout === "album" ? "已切换为专辑焦点版" : "已切换为文字海报版");
+    showToast(layout === "album" ? "已切换为大图主导" : "已切换为图文佐证");
   }
 }
 
@@ -1486,24 +2975,76 @@ function updateRangeOutputs() {
     const key = output.dataset.output;
     if (key === "mainSize") {
       const { limit, constrained } = syncMainSizeLimit();
-      output.value = `${state.mainSize} px${constrained ? ` · 当前换行上限 ${limit}` : ""}`;
+      output.value = `目标 ${state.mainSize} px${constrained ? ` · 安全上限 ${limit}` : ""}`;
+      return;
+    }
+
+    if (key === "mainLineHeight") {
+      output.value = `${Number(state.mainLineHeight).toFixed(2)}×`;
       return;
     }
 
     const prefix = key === "verticalOffset" && Number(state[key]) > 0 ? "+" : "";
     output.value = `${prefix}${state[key]}${suffix[key] || ""}`;
   });
+
+  syncTitleLineSizeControls();
+}
+
+function syncTitleLineSizeControls() {
+  const lines = getCurrentRenderedTitleLines();
+  const shouldShow = lines.length > 1;
+  titleLineSizeControls.hidden = !shouldShow;
+  titleLineSizeList.replaceChildren();
+  if (!shouldShow) return;
+
+  const scales = getEffectiveTitleLineScales(lines);
+  lines.forEach((line, index) => {
+    const field = document.createElement("label");
+    field.className = "range-field title-line-size-field";
+
+    const labelRow = document.createElement("span");
+    const labelText = document.createElement("b");
+    labelText.textContent = `第 ${index + 1} 行`;
+    const previewText = document.createElement("small");
+    const compactLine = line.trim() || "空行";
+    previewText.textContent = `· ${
+      compactLine.length > 12 ? `${compactLine.slice(0, 12)}…` : compactLine
+    }`;
+    labelText.append(previewText);
+
+    const output = document.createElement("output");
+    const percentage = Math.round(scales[index] * 100);
+    output.value = `${percentage}% · 目标 ${Math.round(Number(state.mainSize) * scales[index])} px`;
+    labelRow.append(labelText, output);
+
+    const input = document.createElement("input");
+    input.type = "range";
+    input.min = String(MIN_TITLE_LINE_SCALE * 100);
+    input.max = String(MAX_TITLE_LINE_SCALE * 100);
+    input.step = "1";
+    input.value = String(percentage);
+    input.dataset.titleLineScaleIndex = String(index);
+    input.setAttribute("aria-label", `第 ${index + 1} 行字号：${compactLine}`);
+
+    field.append(labelRow, input);
+    titleLineSizeList.append(field);
+  });
+
+  const usesAutomaticScale = !Array.isArray(state.titleLineScales);
+  resetTitleLineSizesButton.disabled = usesAutomaticScale;
 }
 
 function syncActiveTheme() {
-  const activeTheme = Object.entries(themes).find(([, theme]) =>
-    ["backgroundColor", "cardColor", "textColor"].every(
-      (key) => normalizeHex(theme[key]) === normalizeHex(state[key]),
-    ),
-  )?.[0];
+  const activeTheme =
+    state.themeId !== "custom" && themes[state.themeId]
+      ? state.themeId
+      : inferThemeIdFromColors(state);
 
   document.querySelectorAll(".theme-chip").forEach((chip) => {
-    chip.classList.toggle("is-active", chip.dataset.theme === activeTheme);
+    const isActive = chip.dataset.theme === activeTheme;
+    chip.classList.toggle("is-active", isActive);
+    chip.setAttribute("aria-pressed", String(isActive));
   });
 }
 
@@ -1529,34 +3070,93 @@ function syncNoteTypeButtons() {
   });
 }
 
+function syncTemplateCopyGuide() {
+  const guide = TEMPLATE_COPY_GUIDES[state.noteType];
+  const example = PRESET_FEED_CONTENT[state.noteType];
+  if (!guide || !example) return;
+
+  if (templateCopyGuideBestFor) {
+    templateCopyGuideBestFor.textContent = `适合${guide.bestFor}`;
+  }
+  if (templateCopyGuideSummary) {
+    templateCopyGuideSummary.textContent = guide.summary;
+  }
+  if (templateCopyGuideList) {
+    const rows = guide.roles.map(([label, rule, sample]) => {
+      const row = document.createElement("div");
+      row.className = "template-copy-guide-row";
+
+      const labelElement = document.createElement("strong");
+      labelElement.textContent = label;
+      const content = document.createElement("div");
+      const ruleElement = document.createElement("span");
+      ruleElement.className = "template-copy-guide-rule";
+      ruleElement.textContent = rule;
+      const sampleElement = document.createElement("p");
+      sampleElement.className = "template-copy-guide-sample";
+      sampleElement.textContent = sample;
+      content.append(ruleElement, sampleElement);
+      row.append(labelElement, content);
+      return row;
+    });
+    templateCopyGuideList.replaceChildren(...rows);
+  }
+
+  if (applyTemplateExampleButton) {
+    const isCurrentExample = isSameTemplateContent(state, example);
+    applyTemplateExampleButton.disabled = isCurrentExample;
+    applyTemplateExampleButton.textContent = isCurrentExample
+      ? "已载入最佳示例"
+      : "载入最佳示例";
+  }
+  if (restoreTemplateContentButton) {
+    restoreTemplateContentButton.hidden = !(
+      templateContentBeforeExample &&
+      templateContentBeforeExample.noteType === state.noteType
+    );
+  }
+}
+
 function syncStyleControls() {
   const preset = getNoteTypePreset();
   if (styleStatus) {
     styleStatus.textContent = state.styleCustomized
-      ? `基于「${preset.label}」· 已自定义`
-      : `「${preset.label}」品牌风格已锁定`;
+      ? `当前样式：${preset.label} · 已微调`
+      : `当前样式：${preset.label}`;
   }
   if (styleDescription) {
     styleDescription.textContent = state.styleCustomized
-      ? "切换笔记类型会恢复目标类型的标准风格，文案和照片不会丢失。"
-      : `${preset.description}。只需编辑文案和照片，主页视觉会自动保持一致。`;
+      ? "重选当前样式会恢复推荐排版；文案草稿、照片和配色保持不变。"
+      : `${preset.description}。下方原稿给出最佳字数与换行。`;
   }
+  syncTemplateCopyGuide();
   if (customStyleControls) customStyleControls.hidden = !customStyleOpen;
   if (customStyleButton) {
-    customStyleButton.textContent = customStyleOpen ? "收起微调" : "高级微调";
+    customStyleButton.textContent = customStyleOpen ? "精简参数" : "展开全部";
     customStyleButton.setAttribute("aria-expanded", String(customStyleOpen));
   }
-  if (photoLayoutPicker) {
-    photoLayoutPicker.hidden = !customStyleOpen || state.noteType === "deepDive";
-  }
+  if (photoLayoutPicker) photoLayoutPicker.hidden = false;
   if (photoPresetHint) {
     const hints = {
-      experience: "默认纯文字；上传照片后使用底部证据区。",
-      tutorial: "可上传终端或步骤截图，默认放在标题下方。",
-      product: "建议上传一张真实产品图或使用结果，默认大图优先。",
-      deepDive: "未上传图片时显示克制线稿；上传后替换上方视觉区。",
+      experience: "纯文字时下方副标题会进入 Prompt 卡；切换图文后可补一张背景或结果截图。",
+      tutorial: "下方副标题可用 → 分隔 2–3 个步骤；照片适合放结果截图。",
+      product: "优先上传真实产品图或结果截图；避免把多张图挤进同一封面。",
+      deepDive: "纯文字展示手绘思考线稿；大图主导适合专题封面或文章头图。",
+      hardwareVideo: "右上角建议填写版本号，例如 5.6；上传横图后会成为发布主视觉。",
     };
     photoPresetHint.textContent = hints[state.noteType];
+  }
+  const textHints = {
+    experience: ["写提问背景或一句前置条件", "直接写读者正在问的问题", "写进 Prompt 卡：目标、限制或已有材料"],
+    tutorial: ["写步骤数量，例如：3 步快速上手", "写清要完成的结果", "用 → 分隔 2–3 个步骤"],
+    product: ["写测试条件或一句结论", "先写产品名，再写真实结果", "补充限制、成本或适用人群"],
+    deepDive: ["写议题、报告来源或证据", "像文章标题一样完整表达观点", "写导读或核心结论"],
+    hardwareVideo: ["写发布阶段，例如 FRONTIER UPDATE", "两行内说清升级重点", "补充能力、速度或适用边界"],
+  }[state.noteType];
+  if (textHints) {
+    upperTextHint.textContent = textHints[0];
+    titleTextHint.textContent = textHints[1];
+    subtitleTextHint.textContent = textHints[2];
   }
 }
 
@@ -1574,6 +3174,7 @@ function syncControls() {
     "fontFamily",
     "titleFontFamily",
     "mainSize",
+    "mainLineHeight",
     "upperSize",
     "subtitleSize",
     "groupGap",
@@ -1588,6 +3189,7 @@ function syncControls() {
     input.value = normalizeHex(state[input.dataset.hex]) || defaults[input.dataset.hex];
     input.classList.remove("is-invalid");
   });
+  updateColorContrastStatus();
 
   updateRangeOutputs();
   syncActiveTheme();
@@ -1596,7 +3198,16 @@ function syncControls() {
   syncStyleControls();
   syncPhotoLayoutButtons();
   syncPhotoEditModeButtons();
+  syncFloatingPreviewSide();
   updatePhotoGeometryStatus();
+  if (!uploadedPhoto) {
+    photoStatus.textContent =
+      state.contentMode === "photo"
+        ? "当前显示本地示例图，上传后立即替换"
+        : "纯文字模式 · 未选择照片";
+    photoTransformControls.hidden = true;
+    removePhotoButton.hidden = true;
+  }
 }
 
 function bindStandardControls() {
@@ -1611,6 +3222,7 @@ function bindStandardControls() {
     "fontFamily",
     "titleFontFamily",
     "mainSize",
+    "mainLineHeight",
     "upperSize",
     "subtitleSize",
     "groupGap",
@@ -1622,6 +3234,7 @@ function bindStandardControls() {
     "fontFamily",
     "titleFontFamily",
     "mainSize",
+    "mainLineHeight",
     "upperSize",
     "subtitleSize",
     "groupGap",
@@ -1632,8 +3245,22 @@ function bindStandardControls() {
   keys.forEach((key) => {
     const element = document.getElementById(key);
     element.addEventListener("input", () => {
+      const isRange = element.type === "range";
+      const previousTitleLineCount =
+        key === "titleText" ? getCurrentRenderedTitleLines().length : null;
       state[key] = element.type === "range" ? Number(element.value) : element.value;
+      if (TEMPLATE_CONTENT_KEYS.includes(key)) {
+        updateCurrentTemplateContentDraft();
+        syncTemplateCopyGuide();
+      }
       if (key === "mainSize") state.mainSizePreference = state.mainSize;
+      // 只在行数改变时恢复自动规则；同样行数内改文案时继续保留“第几行更大”的设计意图。
+      if (
+        key === "titleText" &&
+        getCurrentRenderedTitleLines().length !== previousTitleLineCount
+      ) {
+        state.titleLineScales = null;
+      }
       if (["fontFamily", "titleFontFamily"].includes(key)) {
         ensureFontReady(state[key]);
       }
@@ -1643,23 +3270,130 @@ function bindStandardControls() {
       }
       if (["fontFamily", "titleFontFamily"].includes(key)) syncFontPresetButtons();
       updateRangeOutputs();
-      scheduleRender();
+      // 滑杆拖动会连续触发 input；实时渲染但只在 change 时落盘，保持 iPad 上的 1:1 跟手感。
+      scheduleRender({ persist: !isRange });
     });
+
+    if (element.type === "range") {
+      element.addEventListener("change", persistState);
+    }
   });
 }
 
-function bindPreviewModes() {
-  document.querySelectorAll(".preview-mode-button").forEach((button) => {
+function bindTitleLineSizeControls() {
+  titleLineSizeList.addEventListener("input", (event) => {
+    const input = event.target.closest("[data-title-line-scale-index]");
+    if (!input) return;
+
+    const lines = getCurrentRenderedTitleLines();
+    const index = Number(input.dataset.titleLineScaleIndex);
+    if (!Number.isInteger(index) || index < 0 || index >= lines.length) return;
+
+    const scales = getEffectiveTitleLineScales(lines);
+    scales[index] = clamp(
+      Number(input.value) / 100,
+      MIN_TITLE_LINE_SCALE,
+      MAX_TITLE_LINE_SCALE,
+    );
+    state.titleLineScales = scales.slice(0, MAX_CUSTOM_TITLE_LINES);
+    markStyleCustomized();
+
+    const output = input.closest(".range-field")?.querySelector("output");
+    if (output) {
+      output.value = `${Math.round(scales[index] * 100)}% · 目标 ${Math.round(
+        Number(state.mainSize) * scales[index],
+      )} px`;
+    }
+    resetTitleLineSizesButton.disabled = false;
+    // 分行字号也是高频滑杆；拖动时只重绘，松手后再写入本地存储。
+    scheduleRender({ persist: false });
+  });
+
+  titleLineSizeList.addEventListener("change", persistState);
+
+  resetTitleLineSizesButton.addEventListener("click", () => {
+    state.titleLineScales = null;
+    syncTitleLineSizeControls();
+    scheduleRender();
+    showToast("已恢复当前类型的自动标题强调");
+  });
+}
+
+function syncFloatingPreviewSide() {
+  floatingPreview.dataset.side = state.floatingPreviewSide;
+  document.querySelectorAll("[data-floating-preview-side]").forEach((button) => {
+    button.setAttribute(
+      "aria-pressed",
+      String(button.dataset.floatingPreviewSide === state.floatingPreviewSide),
+    );
+  });
+}
+
+function updateFloatingPreviewVisibility() {
+  const previewHasScrolledAway = previewShell.getBoundingClientRect().bottom <= 16;
+  const shouldFloat = floatingPreviewMedia.matches && previewHasScrolledAway;
+  floatingPreview.hidden = !shouldFloat;
+  if (shouldFloat) renderFloatingPreview();
+}
+
+function scheduleFloatingPreviewVisibility() {
+  if (floatingPreviewVisibilityFrame) return;
+  floatingPreviewVisibilityFrame = requestAnimationFrame(() => {
+    floatingPreviewVisibilityFrame = 0;
+    updateFloatingPreviewVisibility();
+  });
+}
+
+function bindFloatingPreview() {
+  syncFloatingPreviewSide();
+  document.querySelectorAll("[data-floating-preview-side]").forEach((button) => {
     button.addEventListener("click", () => {
-      const mode = button.dataset.previewMode;
-      document.querySelectorAll(".preview-mode-button").forEach((item) => {
-        const isActive = item === button;
-        item.classList.toggle("is-active", isActive);
-        item.setAttribute("aria-selected", String(isActive));
-      });
-      document.querySelectorAll("[data-preview-panel]").forEach((panel) => {
-        panel.hidden = panel.dataset.previewPanel !== mode;
-      });
+      state.floatingPreviewSide = button.dataset.floatingPreviewSide;
+      syncFloatingPreviewSide();
+      persistState();
+      showToast(`浮窗已移到${state.floatingPreviewSide === "left" ? "左侧" : "右侧"}`);
+    });
+  });
+
+  window.addEventListener("scroll", scheduleFloatingPreviewVisibility, { passive: true });
+  window.addEventListener("resize", scheduleFloatingPreviewVisibility, { passive: true });
+  if (typeof floatingPreviewMedia.addEventListener === "function") {
+    floatingPreviewMedia.addEventListener("change", scheduleFloatingPreviewVisibility);
+  } else {
+    floatingPreviewMedia.addListener(scheduleFloatingPreviewVisibility);
+  }
+  updateFloatingPreviewVisibility();
+}
+
+function bindPreviewModes() {
+  const buttons = [...document.querySelectorAll(".preview-mode-button")];
+
+  const activate = (button, { focus = false } = {}) => {
+    const mode = button.dataset.previewMode;
+    buttons.forEach((item) => {
+      const isActive = item === button;
+      item.classList.toggle("is-active", isActive);
+      item.setAttribute("aria-selected", String(isActive));
+      item.tabIndex = isActive ? 0 : -1;
+    });
+    document.querySelectorAll("[data-preview-panel]").forEach((panel) => {
+      panel.hidden = panel.dataset.previewPanel !== mode;
+    });
+    if (focus) button.focus();
+  };
+
+  buttons.forEach((button, index) => {
+    button.addEventListener("click", () => activate(button));
+    button.addEventListener("keydown", (event) => {
+      let nextIndex = null;
+      if (event.key === "ArrowRight") nextIndex = (index + 1) % buttons.length;
+      if (event.key === "ArrowLeft") nextIndex = (index - 1 + buttons.length) % buttons.length;
+      if (event.key === "Home") nextIndex = 0;
+      if (event.key === "End") nextIndex = buttons.length - 1;
+      if (nextIndex === null) return;
+
+      event.preventDefault();
+      activate(buttons[nextIndex], { focus: true });
     });
   });
 }
@@ -1669,11 +3403,16 @@ function bindColorControls() {
     input.addEventListener("input", () => {
       const key = input.dataset.color;
       state[key] = input.value.toUpperCase();
+      state.themeId = "custom";
       const hexInput = document.querySelector(`[data-hex="${key}"]`);
       hexInput.value = state[key];
       hexInput.classList.remove("is-invalid");
-      document.querySelectorAll(".theme-chip").forEach((chip) => chip.classList.remove("is-active"));
-      markStyleCustomized();
+      document.querySelectorAll(".theme-chip").forEach((chip) => {
+        chip.classList.remove("is-active");
+        chip.setAttribute("aria-pressed", "false");
+      });
+      syncActiveTheme();
+      updateColorContrastStatus();
       scheduleRender();
     });
   });
@@ -1686,9 +3425,14 @@ function bindColorControls() {
       if (!normalized) return;
 
       state[key] = normalized;
+      state.themeId = "custom";
       document.querySelector(`[data-color="${key}"]`).value = normalized;
-      document.querySelectorAll(".theme-chip").forEach((chip) => chip.classList.remove("is-active"));
-      markStyleCustomized();
+      document.querySelectorAll(".theme-chip").forEach((chip) => {
+        chip.classList.remove("is-active");
+        chip.setAttribute("aria-pressed", "false");
+      });
+      syncActiveTheme();
+      updateColorContrastStatus();
       scheduleRender();
     });
 
@@ -1706,12 +3450,11 @@ function bindThemes() {
       const theme = themes[button.dataset.theme];
       if (!theme) return;
 
-      state = { ...state, ...theme };
-      markStyleCustomized();
-      document.querySelectorAll(".theme-chip").forEach((chip) => chip.classList.remove("is-active"));
-      button.classList.add("is-active");
+      const { label, ...themeColors } = theme;
+      state = { ...state, ...themeColors, themeId: button.dataset.theme };
       syncControls();
       scheduleRender();
+      showToast(`已切换为「${label}」，构图保持不变`);
     });
   });
 }
@@ -1737,7 +3480,6 @@ function bindPhotoLayoutControls() {
   document.querySelectorAll("[data-photo-layout]").forEach((button) => {
     button.addEventListener("click", () => {
       applyPhotoLayoutPreset(button.dataset.photoLayout);
-      markStyleCustomized();
     });
   });
 
@@ -1766,7 +3508,16 @@ function bindNoteTypeControls() {
   });
 }
 
+function bindTemplateCopyGuideControls() {
+  applyTemplateExampleButton?.addEventListener("click", loadCurrentTemplateExample);
+  restoreTemplateContentButton?.addEventListener(
+    "click",
+    restoreTemplateContentBeforeExample,
+  );
+}
+
 function bindCustomStyleControls() {
+  if (!customStyleButton) return;
   customStyleButton.addEventListener("click", () => {
     customStyleOpen = !customStyleOpen;
     syncStyleControls();
@@ -2037,10 +3788,12 @@ function clearUploadedPhoto({ render = true, notify = true } = {}) {
   hidePhotoAlignmentGuides();
   photoTransformOverlay.classList.remove("is-transforming");
   photoInput.value = "";
-  photoStatus.textContent = "未选择照片，刷新后需要重新选择";
+  state.contentMode = "text";
+  photoStatus.textContent = "纯文字模式 · 未选择照片";
   photoTransformControls.hidden = true;
   photoTransformOverlay.hidden = true;
   removePhotoButton.hidden = true;
+  syncPhotoLayoutButtons();
   updateRangeOutputs();
 
   if (render) scheduleRender({ persist: false });
@@ -2066,9 +3819,18 @@ function bindPhotoControls() {
       if (uploadedPhotoUrl) URL.revokeObjectURL(uploadedPhotoUrl);
       uploadedPhoto = nextPhoto;
       uploadedPhotoUrl = nextUrl;
+      state.contentMode = "photo";
+      if (!["editorial", "album"].includes(state.photoLayout)) {
+        const recommendedLayout = getNoteTypePreset().photoLayout;
+        state.photoLayout = ["editorial", "album"].includes(recommendedLayout)
+          ? recommendedLayout
+          : "editorial";
+        Object.assign(state, photoLayoutPresets[state.photoLayout]);
+      }
       photoStatus.textContent = `${file.name} · ${nextPhoto.naturalWidth} × ${nextPhoto.naturalHeight}`;
       photoTransformControls.hidden = false;
       removePhotoButton.hidden = false;
+      syncPhotoLayoutButtons();
       updateRangeOutputs();
       scheduleRender({ persist: false });
       showToast("照片已加入海报");
@@ -2117,6 +3879,8 @@ function createHistoryThumbnail(file) {
       );
       URL.revokeObjectURL(sourceUrl);
       resolve({
+        id: `upload-${file.name}-${file.lastModified || Date.now()}`,
+        source: "upload",
         name: file.name.replace(/\.[^.]+$/, "") || "历史封面",
         dataUrl: thumbnail.toDataURL("image/jpeg", 0.86),
         modifiedAt: file.lastModified || 0,
@@ -2128,6 +3892,67 @@ function createHistoryThumbnail(file) {
     };
     image.src = sourceUrl;
   });
+}
+
+function mergeHistoryCoverGroup(source, covers) {
+  const otherGroups = historyCovers.filter((cover) => cover.source !== source);
+  // 后加入的组优先保留；三张已发布封面和五种预设刚好组成 8 张完整对比。
+  historyCovers = [...otherGroups, ...covers].slice(-MAX_HISTORY_COVERS);
+  renderHistoryCovers();
+}
+
+async function createPresetFeedCovers() {
+  const originalState = { ...state };
+  const originalPhoto = uploadedPhoto;
+  const covers = [];
+
+  try {
+    for (const noteType of PRESET_FEED_ORDER) {
+      const preset = getNoteTypePreset(noteType);
+      const framePreset = photoLayoutPresets[preset.photoLayout];
+      const { label, description, ...styleValues } = preset;
+      state = {
+        ...originalState,
+        ...styleValues,
+        ...framePreset,
+        ...PRESET_FEED_CONTENT[noteType],
+        noteType,
+        contentMode: ["product", "deepDive", "hardwareVideo"].includes(noteType)
+          ? "photo"
+          : "text",
+        styleCustomized: false,
+        mainSizePreference: preset.mainSize,
+        titleLineScales: null,
+        photoFocusX: 50,
+        photoFocusY: 50,
+        photoEditMode: "frame",
+      };
+      // 所有样式使用当前同一主题；图文样式读取内置本地示例，突出“构图”和“配色”的独立关系。
+      uploadedPhoto = null;
+      renderPoster();
+      covers.push({
+        id: `preset-${noteType}`,
+        source: "preset",
+        name: `样式 · ${label}`,
+        dataUrl: canvas.toDataURL("image/jpeg", 0.88),
+      });
+    }
+  } finally {
+    state = originalState;
+    uploadedPhoto = originalPhoto;
+    syncControls();
+    renderPoster();
+  }
+
+  return covers;
+}
+
+function getHistorySourceLabel(source) {
+  return {
+    published: "已发布",
+    preset: "预设",
+    upload: "本地",
+  }[source] || "对比";
 }
 
 function renderHistoryCovers() {
@@ -2144,6 +3969,10 @@ function renderHistoryCovers() {
     image.width = 360;
     image.height = 480;
 
+    const sourceBadge = document.createElement("span");
+    sourceBadge.className = "feed-source-badge";
+    sourceBadge.textContent = getHistorySourceLabel(cover.source);
+
     const title = document.createElement("h3");
     title.textContent = cover.name;
 
@@ -2159,18 +3988,59 @@ function renderHistoryCovers() {
     like.textContent = "♡";
     meta.append(avatar, account, like);
 
-    card.append(image, title, meta);
+    card.append(sourceBadge, image, title, meta);
     historyFeedGrid.append(card);
   });
 
   historyEmptyState.hidden = historyCovers.length > 0;
   clearHistoryButton.hidden = historyCovers.length === 0;
-  historyStatus.textContent = historyCovers.length
-    ? `已加入 ${historyCovers.length} 张，仅用于本次主页对比`
-    : "可临时加入最多 8 张旧封面，不会保存或上传";
+  if (!historyCovers.length) {
+    historyStatus.textContent = "可加载已发布封面、五种样式或本地图片，不会保存或上传";
+    return;
+  }
+
+  const counts = historyCovers.reduce(
+    (summary, cover) => {
+      summary[cover.source] = (summary[cover.source] || 0) + 1;
+      return summary;
+    },
+    {},
+  );
+  const parts = [
+    counts.published ? `已发布 ${counts.published}` : "",
+    counts.preset ? `预设 ${counts.preset}` : "",
+    counts.upload ? `本地 ${counts.upload}` : "",
+  ].filter(Boolean);
+  historyStatus.textContent = `对比中：${parts.join(" · ")}，仅限当前页面`;
 }
 
 function bindHistoryPreview() {
+  loadPublishedCoversButton.addEventListener("click", () => {
+    mergeHistoryCoverGroup(
+      "published",
+      PUBLISHED_COVER_SAMPLES.map((cover) => ({ ...cover })),
+    );
+    showToast("已加载 3 张当前发布封面");
+  });
+
+  loadPresetCoversButton.addEventListener("click", async () => {
+    const originalText = loadPresetCoversButton.textContent;
+    loadPresetCoversButton.disabled = true;
+    loadPresetCoversButton.textContent = "生成中…";
+    historyStatus.textContent = "正在用当前配色生成五种样式…";
+    try {
+      const covers = await createPresetFeedCovers();
+      mergeHistoryCoverGroup("preset", covers);
+      showToast("已生成并加载五种封面样式");
+    } catch {
+      renderHistoryCovers();
+      showToast("预设生成失败，请刷新后重试");
+    } finally {
+      loadPresetCoversButton.disabled = false;
+      loadPresetCoversButton.textContent = originalText;
+    }
+  });
+
   historyCoverInput.addEventListener("change", async () => {
     const selectedFiles = Array.from(historyCoverInput.files || []);
     historyCoverInput.value = "";
@@ -2192,16 +4062,16 @@ function bindHistoryPreview() {
 
     historyStatus.textContent = "正在生成主页缩略图…";
     const results = await Promise.allSettled(validFiles.map(createHistoryThumbnail));
-    historyCovers = results
+    const uploadedCovers = results
       .filter((result) => result.status === "fulfilled")
       .map((result) => result.value)
       .slice(0, MAX_HISTORY_COVERS);
-    renderHistoryCovers();
+    mergeHistoryCoverGroup("upload", uploadedCovers);
 
-    if (historyCovers.length < selectedFiles.length) {
-      showToast(`已加入 ${historyCovers.length} 张，部分文件因格式、大小或数量被忽略`);
+    if (uploadedCovers.length < selectedFiles.length) {
+      showToast(`已加入 ${uploadedCovers.length} 张，部分文件因格式、大小或数量被忽略`);
     } else {
-      showToast(`已加入 ${historyCovers.length} 张历史封面`);
+      showToast(`已加入 ${uploadedCovers.length} 张本地封面`);
     }
   });
 
@@ -2248,8 +4118,9 @@ async function downloadPoster() {
 
 function resetPoster() {
   clearUploadedPhoto({ render: false, notify: false });
-  state = { ...defaults };
-  customStyleOpen = false;
+  state = { ...defaults, templateContentDrafts: {} };
+  templateContentBeforeExample = null;
+  customStyleOpen = true;
   syncControls();
   scheduleRender();
   showToast("已恢复示例内容");
@@ -2257,8 +4128,10 @@ function resetPoster() {
 
 function initialize() {
   bindNoteTypeControls();
+  bindTemplateCopyGuideControls();
   bindCustomStyleControls();
   bindStandardControls();
+  bindTitleLineSizeControls();
   bindColorControls();
   bindThemes();
   bindFontPresetControls();
@@ -2266,6 +4139,7 @@ function initialize() {
   bindPhotoControls();
   bindPhotoTransformGestures();
   bindPreviewModes();
+  bindFloatingPreview();
   bindHistoryPreview();
   downloadButton.addEventListener("click", downloadPoster);
   resetButton.addEventListener("click", resetPoster);
