@@ -192,11 +192,43 @@ summary:focus-visible {
   box-shadow: inset 0 0 0 1px var(--line);
 }
 
+/* 3:4 竖版预览不需要占据大半屏宽：把宽度让给参数区，让参数能横向平铺、少上下滚动。 */
 .workspace {
   display: grid;
-  grid-template-columns: minmax(350px, 440px) minmax(520px, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(330px, 34%);
   align-items: start;
   gap: 28px;
+}
+
+/* 参数区变宽后横向平铺：五个小节分栏排布，面板高度显著下降，调参不用反复上下滑。
+   每个小节整块参与分栏，标题不会和自己的控件被拆到两栏。 */
+.control-sections {
+  display: block;
+}
+
+@media (min-width: 1180px) {
+  .control-sections {
+    columns: 2;
+    column-gap: 12px;
+  }
+
+  .control-section {
+    break-inside: avoid;
+  }
+}
+
+/* 三栏时每栏约 315px，双列的控件会挤到换行；这些控件在三栏模式下改成单列。 */
+@media (min-width: 1560px) {
+  .control-sections {
+    columns: 3;
+  }
+
+  .control-sections .note-type-grid,
+  .control-sections .color-grid,
+  .control-sections .field-grid-two,
+  .control-sections .footer-field-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .control-panel {
@@ -457,10 +489,12 @@ summary:focus-visible {
   opacity: 0.52;
 }
 
+/* 五张缩略图跟随各模板的默认配色，避免选样式时看到的颜色和实际成图不一致。 */
 .preview-statement {
-  --preview-outer: #000;
-  --preview-card: #101010;
-  --preview-ink: #f7f7f7;
+  --preview-outer: #bcd1ca;
+  --preview-card: #faf9f5;
+  --preview-ink: #141413;
+  --preview-media: #bcd1ca;
 }
 
 .preview-statement b {
@@ -484,15 +518,20 @@ summary:focus-visible {
   height: 15px;
   border-radius: 5px;
   background:
-    radial-gradient(circle at calc(100% - 6px) calc(100% - 5px), #f7f7f7 0 2px, transparent 2.5px),
-    linear-gradient(#303030, #303030);
+    radial-gradient(
+      circle at calc(100% - 6px) calc(100% - 5px),
+      var(--preview-card) 0 2px,
+      transparent 2.5px
+    ),
+    linear-gradient(var(--preview-media), var(--preview-media));
   opacity: 1;
 }
 
 .preview-checklist {
-  --preview-outer: #322044;
-  --preview-card: #d9f46c;
-  --preview-ink: #241631;
+  --preview-outer: #6a9bcc;
+  --preview-card: #faf9f5;
+  --preview-ink: #141413;
+  --preview-media: #6a9bcc;
 }
 
 .preview-checklist em {
@@ -529,21 +568,24 @@ summary:focus-visible {
 }
 
 .preview-evidence {
-  --preview-outer: #092d2b;
-  --preview-card: #ff6847;
-  --preview-ink: #071e1d;
+  --preview-outer: #02181a;
+  --preview-card: #41cfd8;
+  --preview-ink: #04201f;
+  --preview-media: #02181a;
 }
 
 .preview-editorial {
-  --preview-outer: #141413;
-  --preview-card: #1f1e1d;
-  --preview-ink: #faf9f5;
+  --preview-outer: #cbcadb;
+  --preview-card: #faf9f5;
+  --preview-ink: #141413;
+  --preview-media: #cbcadb;
 }
 
 .preview-split {
-  --preview-outer: #000;
-  --preview-card: #101010;
-  --preview-ink: #f7f7f7;
+  --preview-outer: #141010;
+  --preview-card: #f2542c;
+  --preview-ink: #210a03;
+  --preview-media: #141010;
 }
 
 .preview-evidence i,
@@ -578,11 +620,17 @@ summary:focus-visible {
   top: 8px;
   left: 6px;
   height: 22px;
+  opacity: 1;
   background:
-    radial-gradient(circle at 72% 28%, #d97757 0 3px, transparent 3.5px),
-    radial-gradient(circle at 22% 70%, #faf9f5 0 1.5px, transparent 2px),
-    linear-gradient(152deg, transparent 0 37%, #faf9f5 38% 40%, transparent 41% 100%),
-    #8d3f2b;
+    radial-gradient(circle at 72% 28%, var(--preview-card) 0 3px, transparent 3.5px),
+    radial-gradient(circle at 22% 70%, var(--preview-ink) 0 1.5px, transparent 2px),
+    linear-gradient(
+      152deg,
+      transparent 0 37%,
+      var(--preview-ink) 38% 40%,
+      transparent 41% 100%
+    ),
+    var(--preview-media);
 }
 
 .preview-editorial b {
@@ -900,6 +948,34 @@ select:focus {
 
 .theme-list {
   display: grid;
+  gap: 16px;
+}
+
+.theme-group {
+  display: grid;
+  gap: 9px;
+}
+
+.theme-group-heading {
+  display: grid;
+  gap: 3px;
+}
+
+.theme-group-heading strong {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.theme-group-heading span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 550;
+  line-height: 1.45;
+}
+
+.theme-group-chips {
+  display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
@@ -935,29 +1011,41 @@ select:focus {
   transform: scale(0.96);
 }
 
+/* 色卡按海报本身的三层结构画：满幅色场 + 承载卡 + 一道墨线，切换时能直接预判成图。 */
 .theme-chip-preview {
   position: relative;
   flex: 0 0 auto;
-  width: 40px;
-  height: 40px;
-  overflow: hidden;
-  border-radius: 12px;
-  background:
-    linear-gradient(90deg, transparent 0 50%, var(--chip-b) 50% 100%),
-    linear-gradient(var(--chip-a) 0 50%, var(--chip-d) 50% 100%);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+  width: 34px;
+  height: 44px;
+  border-radius: 8px;
+  background: var(--chip-field);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+.theme-chip-preview::before {
+  position: absolute;
+  inset: 4px 3px;
+  border-radius: 5px;
+  background: var(--chip-card);
+  content: "";
 }
 
 .theme-chip-preview::after {
   position: absolute;
-  right: 5px;
-  bottom: 5px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--chip-c);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.72);
+  top: 17px;
+  left: 7px;
+  width: 20px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--chip-ink);
   content: "";
+}
+
+.theme-chip-preview[data-decorator="editorialTech"]::after {
+  top: 18px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--chip-accent);
 }
 
 .theme-chip-copy {
@@ -1713,19 +1801,21 @@ input[type="range"] {
   display: none;
 }
 
+/* 预览列收窄到 1/3 后横排会把标题挤成断行，改为上下两段：标题在上、控件在下。 */
 .preview-toolbar {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 12px;
   margin-bottom: 18px;
 }
 
 .preview-toolbar-actions {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 10px;
+  width: 100%;
 }
 
 .preview-mode-switch {
@@ -2239,7 +2329,7 @@ input[type="range"] {
 
 @media (max-width: 1050px) {
   .workspace {
-    grid-template-columns: minmax(320px, 390px) minmax(440px, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 38%);
   }
 
   .color-grid {
@@ -2449,18 +2539,8 @@ input[type="range"] {
     flex: 1;
   }
 
-  .theme-list {
+  .theme-group-chips {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .preview-toolbar {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .preview-toolbar-actions {
-    width: 100%;
-    justify-content: space-between;
   }
 
   .canvas-stage {
@@ -2573,7 +2653,7 @@ input[type="range"] {
     gap: 12px;
   }
 
-  .theme-list,
+  .theme-group-chips,
   .font-preset-grid,
   .photo-layout-picker,
   .photo-edit-mode-picker {

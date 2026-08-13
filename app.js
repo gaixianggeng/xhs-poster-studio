@@ -139,6 +139,12 @@ const titleWordSegmenter =
     ? new Intl.Segmenter("zh-CN", { granularity: "word" })
     : null;
 
+// 象牙与近黑是「满幅色场」系列的固定两层，只有满幅 accent 随主题变化。
+const FIELD_CARD_COLOR = "#FAF9F5";
+const FIELD_INK_COLOR = "#141413";
+// accent 与象牙卡对比过低时，卡片轮廓会在白色信息流里消失；低于该比值就补一条墨色细边。
+const CARD_OUTLINE_MIN_RATIO = 1.7;
+
 const photoLayoutPresets = Object.freeze({
   editorial: {
     photoFrameX: 150,
@@ -169,7 +175,9 @@ const photoLayoutPresets = Object.freeze({
 const defaults = Object.freeze({
   noteType: "experience",
   styleCustomized: false,
-  themeId: "forestPaper",
+  // 手动挑过配色后，切换模板不再覆盖颜色；未挑过时跟随模板的默认色系。
+  themeCustomized: false,
+  themeId: "cactusField",
   contentMode: "text",
   templateContentDrafts: Object.freeze({}),
   topLeft: PRESET_FEED_CONTENT.experience.topLeft,
@@ -181,10 +189,13 @@ const defaults = Object.freeze({
   footerText: PRESET_FEED_CONTENT.experience.footerText,
   footerAlign: "center",
   floatingPreviewSide: "right",
-  backgroundColor: "#173027",
-  cardColor: "#F0E6CF",
-  textColor: "#19352B",
-  visualColor: "#D8D6E2",
+  backgroundColor: "#BCD1CA",
+  cardColor: FIELD_CARD_COLOR,
+  textColor: FIELD_INK_COLOR,
+  // mediaColor 负责照片占位与视觉块底色，inkColor 负责插画墨线与装饰；
+  // 旧版把两者合并成 visualColor，导致它既要够浅当底色又要够深当线条。
+  mediaColor: "#BCD1CA",
+  inkColor: FIELD_INK_COLOR,
   fontFamily: "grotesk",
   titleFontFamily: "grotesk",
   mainSize: 260,
@@ -208,80 +219,151 @@ const defaults = Object.freeze({
   ...photoLayoutPresets.editorial,
 });
 
+const THEME_FAMILIES = Object.freeze({
+  ink: {
+    label: "深底高对比",
+    hint: "近黑画布 + 单一高饱和亮卡；缩略图冲击力最强，延续账号已发布的封面",
+  },
+  field: {
+    label: "满幅色场",
+    hint: "满幅色场 + 象牙承载卡 + 近黑墨线；适合观点、教程与深度内容",
+  },
+});
+
+// 两套基础配色只允许一个色相：背景、卡片、媒体块和墨线都由同一个色系派生，
+// 避免随意拼贴。科技编辑只增加一个固定强调色，不进入可编辑颜色状态。
 const themes = Object.freeze({
-  // 配色只负责视觉语气，不再携带模板含义；四个颜色角色同时切换，避免视觉区残留旧主题。
-  openaiMono: {
-    label: "OpenAI 黑白",
+  // ——「深底高对比」：取自账号已发布封面的实际取色（近黑墨绿画布 + 高饱和亮卡 + 近黑字）。
+  // 深底系列的媒体块直接取画布色：视觉上像从亮卡里开了一扇窗回到画布，
+  // 比中间调的深色块干净，也天然保证一套里不出现第二个色相。
+  cyanInk: {
+    label: "青绿墨底",
+    family: "ink",
+    backgroundColor: "#02181A",
+    cardColor: "#41CFD8",
+    textColor: "#04201F",
+    mediaColor: "#02181A",
+    inkColor: "#04201F",
+  },
+  emberInk: {
+    label: "橙红墨底",
+    family: "ink",
+    backgroundColor: "#141010",
+    cardColor: "#F2542C",
+    textColor: "#210A03",
+    mediaColor: "#141010",
+    inkColor: "#210A03",
+  },
+  lemonInk: {
+    label: "柠檬墨底",
+    family: "ink",
+    backgroundColor: "#0D1206",
+    cardColor: "#D9F46C",
+    textColor: "#1C2205",
+    mediaColor: "#0D1206",
+    inkColor: "#1C2205",
+  },
+  azureInk: {
+    label: "电光蓝墨底",
+    family: "ink",
+    backgroundColor: "#050B16",
+    // 已发布封面用的 #027AFF 配白字只有 3.8:1；压深到 #0061D6 后达到 5.4:1，观感几乎不变。
+    cardColor: "#0061D6",
+    textColor: "#F4F8FF",
+    mediaColor: "#050B16",
+    inkColor: "#F4F8FF",
+  },
+  monoInk: {
+    label: "纯黑白",
+    family: "ink",
     backgroundColor: "#000000",
     cardColor: "#101010",
     textColor: "#F7F7F7",
-    visualColor: "#303030",
+    mediaColor: "#262626",
+    inkColor: "#F7F7F7",
   },
-  claudeWarm: {
-    label: "Claude 暖黑",
-    backgroundColor: "#141413",
-    cardColor: "#1F1E1D",
-    textColor: "#FAF9F5",
-    // 深锈色承载正文时仍有足够对比；更亮的珊瑚色只作为无文字装饰线使用。
-    visualColor: "#8D3F2B",
+
+  // ——「满幅色场」：anthropic-art 的三层结构，accent 铺满画布、象牙卡承载文字、近黑负责所有墨线。
+  cactusField: {
+    label: "仙人掌绿",
+    family: "field",
+    backgroundColor: "#BCD1CA",
+    cardColor: FIELD_CARD_COLOR,
+    textColor: FIELD_INK_COLOR,
+    mediaColor: "#BCD1CA",
+    inkColor: FIELD_INK_COLOR,
   },
-  forestPaper: {
-    label: "森林纸感",
-    backgroundColor: "#173027",
-    cardColor: "#F0E6CF",
-    textColor: "#19352B",
-    visualColor: "#D8D6E2",
+  heatherField: {
+    label: "石楠紫",
+    family: "field",
+    backgroundColor: "#CBCADB",
+    cardColor: FIELD_CARD_COLOR,
+    textColor: FIELD_INK_COLOR,
+    mediaColor: "#CBCADB",
+    inkColor: FIELD_INK_COLOR,
   },
-  inkPaper: {
-    label: "黑墨纸张",
-    backgroundColor: "#171918",
-    cardColor: "#F7F1E5",
-    textColor: "#191A18",
-    visualColor: "#DDD5C6",
+  clayField: {
+    label: "陶土橙",
+    family: "field",
+    backgroundColor: "#D97757",
+    cardColor: FIELD_CARD_COLOR,
+    textColor: FIELD_INK_COLOR,
+    mediaColor: "#D97757",
+    inkColor: FIELD_INK_COLOR,
   },
-  oceanIce: {
-    label: "海盐蓝",
-    backgroundColor: "#0B214A",
-    cardColor: "#B8D3FF",
-    textColor: "#0A1836",
-    visualColor: "#91B8F4",
+  skyField: {
+    label: "晴空蓝",
+    family: "field",
+    backgroundColor: "#6A9BCC",
+    cardColor: FIELD_CARD_COLOR,
+    textColor: FIELD_INK_COLOR,
+    mediaColor: "#6A9BCC",
+    inkColor: FIELD_INK_COLOR,
   },
-  coralInk: {
-    label: "珊瑚墨绿",
-    backgroundColor: "#092D2B",
-    cardColor: "#FF6847",
-    textColor: "#071E1D",
-    visualColor: "#F1C5A1",
+  oliveField: {
+    label: "橄榄绿",
+    family: "field",
+    backgroundColor: "#788C5D",
+    cardColor: FIELD_CARD_COLOR,
+    textColor: FIELD_INK_COLOR,
+    mediaColor: "#788C5D",
+    inkColor: FIELD_INK_COLOR,
   },
-  lemonPlum: {
-    label: "青柠紫",
-    backgroundColor: "#322044",
-    cardColor: "#D9F46C",
-    textColor: "#241631",
-    visualColor: "#C9A7EB",
-  },
-  berryCloud: {
-    label: "莓果云朵",
-    backgroundColor: "#6D2848",
-    cardColor: "#BDD8FF",
-    textColor: "#28172B",
-    visualColor: "#E9BED1",
-  },
-  cyanNight: {
-    label: "夜光青",
-    backgroundColor: "#06242A",
-    cardColor: "#62D9D4",
-    textColor: "#052126",
-    visualColor: "#A7E2DE",
-  },
-  clayPaper: {
-    label: "陶土米白",
-    backgroundColor: "#D77656",
-    cardColor: "#FBF7EF",
-    textColor: "#191918",
-    visualColor: "#E8D7C7",
+  signalGrid: {
+    label: "编辑蓝",
+    family: "field",
+    backgroundColor: "#263F8F",
+    cardColor: "#F1EEE6",
+    textColor: "#17191D",
+    mediaColor: "#263F8F",
+    inkColor: "#17191D",
+    decorator: "editorialTech",
+    accentColor: "#E66749",
   },
 });
+
+const LEGACY_SIGNAL_GRID_COLORS = Object.freeze({
+  backgroundColor: "#1E1E1E",
+  cardColor: "#2144AB",
+  textColor: "#D5E0EC",
+  mediaColor: "#D5E0EC",
+  inkColor: "#1E1E1E",
+});
+
+const THEME_COLOR_KEYS = Object.freeze([
+  "backgroundColor",
+  "cardColor",
+  "textColor",
+  "mediaColor",
+  "inkColor",
+]);
+
+// 取出主题的颜色值，丢掉 label / family 这类描述字段，避免它们被写进 state。
+function getThemeColors(themeId) {
+  const theme = themes[themeId];
+  if (!theme) return null;
+  return Object.fromEntries(THEME_COLOR_KEYS.map((key) => [key, theme[key]]));
+}
 
 const fontStacks = {
   system:
@@ -321,6 +403,24 @@ const fontPresets = Object.freeze({
     fontFamily: "grotesk",
     titleFontFamily: "serif",
   },
+});
+
+const localFontDefinitions = Object.freeze({
+  handwritten: {
+    css: '500 96px "Yozai"',
+    sample: "Codex 远程 到底稳不稳？",
+    label: "自然手写",
+  },
+});
+
+// 两套基础色系按模板分工：发布与测评走深底高对比，观点、教程与深度走满幅色场。
+// 用户仍可自由跨系列选色；只有在没有手动挑过配色时才跟随模板的默认值。
+const NOTE_TYPE_DEFAULT_THEMES = Object.freeze({
+  experience: "cactusField",
+  tutorial: "skyField",
+  deepDive: "heatherField",
+  product: "cyanInk",
+  hardwareVideo: "emberInk",
 });
 
 const noteTypePresets = Object.freeze({
@@ -488,7 +588,7 @@ const photoTransformHelp = document.querySelector("#photoTransformHelp");
 const resetPhotoFrameButton = document.querySelector("#resetPhotoFrameButton");
 const removePhotoButton = document.querySelector("#removePhotoButton");
 const customStyleControls = document.querySelector("#customStyleControls");
-const colorContrastStatus = document.querySelector("#colorContrastStatus");
+const themeList = document.querySelector("#themeList");
 const customStyleButton = document.querySelector("#customStyleButton");
 const styleStatus = document.querySelector("#styleStatus");
 const styleDescription = document.querySelector("#styleDescription");
@@ -523,7 +623,7 @@ let renderFrame = 0;
 let toastTimer = 0;
 let uploadedPhoto = null;
 let uploadedPhotoUrl = "";
-let handwrittenFontPromise;
+const localFontPromises = new Map();
 let photoGesture = null;
 let alignmentGuideTimer = 0;
 let floatingPreviewVisibilityFrame = 0;
@@ -548,12 +648,36 @@ function loadState() {
     merged.templateContentDrafts = sanitizeTemplateContentDrafts(
       validSaved.templateContentDrafts,
     );
-    if (!Object.prototype.hasOwnProperty.call(validSaved, "themeId")) {
+    // 旧版本把媒体块底色与装饰墨线合并成一个 visualColor，所以它既不能太深也不能太浅。
+    // 升级时按角色拆成两个键：媒体块沿用用户原值，墨线跟随文字色，视觉结果不突变。
+    if (!Object.prototype.hasOwnProperty.call(validSaved, "mediaColor")) {
+      merged.mediaColor = normalizeHex(validSaved.visualColor) || defaults.mediaColor;
+    }
+    if (!Object.prototype.hasOwnProperty.call(validSaved, "inkColor")) {
+      merged.inkColor = normalizeHex(validSaved.textColor) || defaults.inkColor;
+    }
+    merged.mediaColor = normalizeHex(merged.mediaColor) || defaults.mediaColor;
+    merged.inkColor = normalizeHex(merged.inkColor) || defaults.inkColor;
+    delete merged.visualColor;
+    // 旧的十套配色已被当前预设取代。保留用户保存的色值，但只有在色值真的等于
+    // 某套新配色时才声称命中，否则标记为 custom，不谎报当前激活的主题。
+    if (
+      !Object.prototype.hasOwnProperty.call(validSaved, "themeId") ||
+      !Object.prototype.hasOwnProperty.call(themes, merged.themeId)
+    ) {
       merged.themeId = inferThemeIdFromColors(merged) || "custom";
     }
-    if (merged.themeId !== "custom" && !Object.prototype.hasOwnProperty.call(themes, merged.themeId)) {
-      merged.themeId = "custom";
+    // 仅迁移上一版完整的旧信号蓝预设；其他保存色值仍按用户状态原样保留。
+    // 这样刷新后不会继续显示已经撤回的三色像素风，也不会误改真正的自定义配色。
+    if (
+      merged.themeId === "signalGrid" &&
+      THEME_COLOR_KEYS.every(
+        (key) => normalizeHex(merged[key]) === normalizeHex(LEGACY_SIGNAL_GRID_COLORS[key]),
+      )
+    ) {
+      Object.assign(merged, getThemeColors("signalGrid"));
     }
+    if (merged.themeId === "custom") merged.themeCustomized = true;
     if (!Object.prototype.hasOwnProperty.call(validSaved, "contentMode")) {
       merged.contentMode = "text";
     }
@@ -570,13 +694,13 @@ function loadState() {
       merged.fontFamily = noteTypePresets[merged.noteType].fontFamily;
       merged.titleFontFamily = noteTypePresets[merged.noteType].titleFontFamily;
     }
-    if (!["system", "grotesk", "rounded", "handwritten", "serif"].includes(merged.titleFontFamily)) {
+    if (
+      !["system", "grotesk", "rounded", "handwritten", "serif"].includes(
+        merged.titleFontFamily,
+      )
+    ) {
       merged.titleFontFamily = noteTypePresets[merged.noteType].titleFontFamily;
     }
-    merged.visualColor =
-      normalizeHex(merged.visualColor) ||
-      themes[merged.themeId]?.visualColor ||
-      themes.forestPaper.visualColor;
     // 兼容旧版状态：首次升级时把用户原有字号作为偏好值，不强行恢复默认字号。
     if (!Object.prototype.hasOwnProperty.call(validSaved, "mainSizePreference")) {
       merged.mainSizePreference = merged.mainSize;
@@ -675,10 +799,14 @@ function updateCurrentTemplateContentDraft() {
 
 function inferThemeIdFromColors(source = state) {
   return Object.entries(themes).find(([, theme]) =>
-    ["backgroundColor", "cardColor", "textColor", "visualColor"].every(
+    THEME_COLOR_KEYS.every(
       (key) => normalizeHex(theme[key]) === normalizeHex(source[key]),
     ),
   )?.[0];
+}
+
+function getActiveThemeFamily() {
+  return themes[state.themeId]?.family || null;
 }
 
 function getNoteTypePreset(noteType = state.noteType) {
@@ -686,7 +814,20 @@ function getNoteTypePreset(noteType = state.noteType) {
 }
 
 function getTypographyProfile(noteType = state.noteType) {
-  return typographyProfiles[noteType] || typographyProfiles.experience;
+  const baseProfile = typographyProfiles[noteType] || typographyProfiles.experience;
+  const activeTheme = themes[state.themeId] || themes[inferThemeIdFromColors(state)];
+  if (activeTheme?.decorator !== "editorialTech") return baseProfile;
+
+  // 科技编辑风把变化交给留白、色面与信号标记，标题仍使用可读的现代黑体。
+  // 适度收回字重、负字距与末行放大，避免中文长标题出现拥挤和断裂感。
+  return {
+    ...baseProfile,
+    titleWeight: Math.min(baseProfile.titleWeight, 800),
+    focusScale: Math.min(baseProfile.focusScale, 1.04),
+    singleLineScale: Math.min(baseProfile.singleLineScale, 1.04),
+    titleLineGapEm: Math.max(baseProfile.titleLineGapEm, -0.02),
+    letterSpacingEm: Math.max(baseProfile.letterSpacingEm, -0.018),
+  };
 }
 
 function getTitleDesiredSizes(lines, mainSize, profile = getTypographyProfile()) {
@@ -836,11 +977,17 @@ function applyNoteTypePreset(noteType, { notify = true } = {}) {
   const preset = getNoteTypePreset(noteType);
   const framePreset = photoLayoutPresets[preset.photoLayout];
   const { label, description, ...styleValues } = preset;
+  // 两套基础色系按模板分工，但用户手动挑过配色后就以用户的选择为准，不再被模板覆盖。
+  const themeColors = state.themeCustomized
+    ? null
+    : getThemeColors(NOTE_TYPE_DEFAULT_THEMES[noteType]);
   state = {
     ...state,
     ...styleValues,
     ...framePreset,
     ...nextContent,
+    ...(themeColors || {}),
+    ...(themeColors ? { themeId: NOTE_TYPE_DEFAULT_THEMES[noteType] } : {}),
     noteType,
     templateContentDrafts,
     styleCustomized: false,
@@ -861,7 +1008,10 @@ function applyNoteTypePreset(noteType, { notify = true } = {}) {
         : existingDraft
           ? "已恢复这套模板的文案草稿"
           : "已载入模板原稿";
-    showToast(`已切换到「${label}」；${contentStatus}`);
+    const themeStatus = themeColors
+      ? `；配色跟随为「${themes[NOTE_TYPE_DEFAULT_THEMES[noteType]].label}」`
+      : "";
+    showToast(`已切换到「${label}」；${contentStatus}${themeStatus}`);
   }
 }
 
@@ -939,16 +1089,17 @@ function getContrastRatio(firstColor, secondColor) {
   return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
 }
 
-function updateColorContrastStatus() {
-  if (!colorContrastStatus) return;
-  // 海报文字既可能落在卡片上，也可能落在拼贴视觉区；取两处对比度的较低值作为护栏。
-  const cardRatio = getContrastRatio(state.textColor, state.cardColor);
-  const visualRatio = getContrastRatio(state.textColor, state.visualColor);
-  const hasSufficientContrast = Math.min(cardRatio, visualRatio) >= 4.5;
-  colorContrastStatus.classList.toggle("is-warning", !hasSufficientContrast);
-  colorContrastStatus.textContent = hasSufficientContrast
-    ? `文字对比度充足：卡片 ${cardRatio.toFixed(1)}:1 · 视觉区 ${visualRatio.toFixed(1)}:1`
-    : `文字对比度偏低：卡片 ${cardRatio.toFixed(1)}:1 · 视觉区 ${visualRatio.toFixed(1)}:1，建议至少 4.5:1`;
+// 媒体块底色可深可浅：满幅色场与信号蓝使用浅色块，深底系列使用深色块。
+// 墨线与块内文字统一走这里选色，避免出现近黑线画在深块上这种不可读组合。
+function pickReadableInk(backgroundColor) {
+  const candidates = [state.inkColor, state.textColor, state.cardColor, FIELD_CARD_COLOR];
+  return candidates.reduce((best, candidate) => {
+    if (!normalizeHex(candidate)) return best;
+    return getContrastRatio(candidate, backgroundColor) >
+      getContrastRatio(best, backgroundColor)
+      ? candidate
+      : best;
+  }, state.inkColor);
 }
 
 function splitLines(value) {
@@ -967,31 +1118,35 @@ function getCanvasDimensions() {
 }
 
 function fontString(weight, size, family = state.fontFamily) {
-  // Yozai 当前只内置 Medium；固定使用真实字重，避免浏览器合成粗体破坏自然笔触。
-  const effectiveWeight = family === "handwritten" ? 500 : weight;
+  // 本地手写字体只有一个真实字重；固定为 500，避免浏览器合成粗体破坏笔画。
+  const localFontWeights = { handwritten: 500 };
+  const effectiveWeight = localFontWeights[family] || weight;
   return `${effectiveWeight} ${size}px ${fontStacks[family] || fontStacks.system}`;
 }
 
 function ensureFontReady(family = state.fontFamily) {
-  if (family !== "handwritten" || !document.fonts?.load) return Promise.resolve();
-  if (handwrittenFontPromise) return handwrittenFontPromise;
+  const definition = localFontDefinitions[family];
+  if (!definition || !document.fonts?.load) return Promise.resolve();
+  if (localFontPromises.has(family)) return localFontPromises.get(family);
 
   // Canvas 不会自动重绘异步到达的 Web Font，因此加载完成后重新计算字号上限并渲染。
-  handwrittenFontPromise = document.fonts
-    .load('500 96px "Yozai"', "Codex 远程 到底稳不稳？")
-    .then(() => {
-      if (state.fontFamily === "handwritten" || state.titleFontFamily === "handwritten") {
+  const promise = document.fonts
+    .load(definition.css, definition.sample)
+    .then((faces) => {
+      if (!faces.length) throw new Error("font unavailable");
+      if (state.fontFamily === family || state.titleFontFamily === family) {
         syncMainSizeLimit();
         updateRangeOutputs();
         scheduleRender({ persist: false });
       }
     })
     .catch(() => {
-      handwrittenFontPromise = null;
-      showToast("自然手写字体加载失败，已使用系统字体");
+      localFontPromises.delete(family);
+      showToast(`${definition.label}字体加载失败，已使用系统字体`);
     });
 
-  return handwrittenFontPromise;
+  localFontPromises.set(family, promise);
+  return promise;
 }
 
 function alignMainSizeToStep(value, mode = "nearest") {
@@ -1053,6 +1208,43 @@ function roundedRectPath(ctx, x, y, width, height, radius) {
   ctx.arcTo(x, y + height, x, y, safeRadius);
   ctx.arcTo(x, y, x + width, y, safeRadius);
   ctx.closePath();
+}
+
+function drawEditorialTechDecorations({ cardX, cardY, cardWidth, cardHeight, layoutScale }) {
+  const theme = themes[state.themeId] || themes[inferThemeIdFromColors(state)];
+  if (theme?.decorator !== "editorialTech") return;
+
+  context.save();
+  // 信号标记只占用卡片左右安全边缘，并裁在固定圆角内；不侵入标题、正文和照片区域。
+  roundedRectPath(
+    context,
+    cardX,
+    cardY,
+    cardWidth,
+    cardHeight,
+    CARD_CORNER_RADIUS * layoutScale,
+  );
+  context.clip();
+
+  context.fillStyle = theme.accentColor;
+  context.fillRect(
+    cardX + 26 * layoutScale,
+    cardY + 174 * layoutScale,
+    6 * layoutScale,
+    70 * layoutScale,
+  );
+
+  context.fillStyle = state.inkColor;
+  context.globalAlpha = 0.14;
+  const dotX = cardX + cardWidth - 28 * layoutScale;
+  const dotY = cardY + 176 * layoutScale;
+  const dotRadius = 2.4 * layoutScale;
+  for (let row = 0; row < 6; row += 1) {
+    context.beginPath();
+    context.arc(dotX, dotY + row * 16 * layoutScale, dotRadius, 0, Math.PI * 2);
+    context.fill();
+  }
+  context.restore();
 }
 
 function calculateCoverCrop(
@@ -1232,7 +1424,7 @@ function drawSamplePhotoFallback(metrics) {
     metrics.radius,
   );
   context.clip();
-  context.fillStyle = normalizeHex(state.visualColor) || "#132A2E";
+  context.fillStyle = normalizeHex(state.mediaColor) || defaults.mediaColor;
   context.fillRect(metrics.x, metrics.y, metrics.width, metrics.height);
 
   if (editorialSamplePhoto.complete && editorialSamplePhoto.naturalWidth > 0) {
@@ -1494,6 +1686,28 @@ function getOpticalStackTop(regionTop, regionBottom, stackHeight, bias = 0.48) {
   return regionTop + remainingHeight * bias;
 }
 
+// 大标题受卡片宽度限制，往往无法再放大，内容因此明显短于卡片高度。
+// 这时把富余空间平均摊到每一条缝隙上（含首块之前与末块之后）：
+// 缝隙越多、每条越小，就不会出现某一处 20% 以上的整块空白。
+// minGaps[i] 是第 i 块之后必须保留的最小间隙，空间不足时只剩这些最小值。
+function distributeVerticalSlack(regionTop, regionBottom, heights, minGaps = []) {
+  const totalHeight = heights.reduce((sum, height) => sum + height, 0);
+  const totalMinGap = minGaps.reduce((sum, gap) => sum + gap, 0);
+  const seamCount = heights.length + 1;
+  const slack = Math.max(
+    0,
+    regionBottom - regionTop - totalHeight - totalMinGap,
+  );
+  const share = slack / seamCount;
+  const tops = [];
+  let cursor = regionTop + share;
+  heights.forEach((height, index) => {
+    tops.push(cursor);
+    cursor += height + (minGaps[index] ?? 0) + share;
+  });
+  return tops;
+}
+
 function drawTemplateCornerLabels({
   cardX,
   cardY,
@@ -1734,25 +1948,59 @@ function renderTutorialContent({
       eyebrowHeight + mainBlock.height + railHeight + firstGap + secondGap;
   }
 
-  let cursorY =
-    getOpticalStackTop(regionTop, regionBottom, stackHeight, 0.5) +
-    Number(state.verticalOffset) * layoutScale;
-  cursorY = clamp(cursorY, regionTop, Math.max(regionTop, regionBottom - stackHeight));
-  if (hasEyebrow) {
-    drawEyebrowChip(
-      state.upperText,
-      contentX,
-      cursorY,
-      maxContentWidth,
-      layoutScale,
-      scale,
-      false,
+  // 纯文字模式下承诺、标题和步骤条各自独立定位，富余空间摊给四条缝隙，
+  // 避免顶部角标被一整段空白孤立、或步骤条与标题挤在一起。
+  if (!photoWindow) {
+    const offset = Number(state.verticalOffset) * layoutScale;
+    const blocks = [];
+    if (hasEyebrow) blocks.push({ kind: "eyebrow", height: eyebrowHeight, gap: firstGap });
+    blocks.push({ kind: "title", height: mainBlock.height, gap: secondGap });
+    if (railHeight) blocks.push({ kind: "rail", height: railHeight, gap: 0 });
+    const tops = distributeVerticalSlack(
+      regionTop + offset,
+      regionBottom,
+      blocks.map((block) => block.height),
+      blocks.map((block) => block.gap),
     );
-    cursorY += eyebrowHeight + firstGap;
+    blocks.forEach((block, index) => {
+      const top = tops[index];
+      if (block.kind === "eyebrow") {
+        drawEyebrowChip(
+          state.upperText,
+          contentX,
+          top,
+          maxContentWidth,
+          layoutScale,
+          scale,
+          false,
+        );
+      } else if (block.kind === "title") {
+        drawBlock(mainBlock, contentX, top);
+      } else {
+        drawTutorialStepRail(steps, contentX, top, maxContentWidth, layoutScale, scale);
+      }
+    });
+  } else {
+    let cursorY =
+      getOpticalStackTop(regionTop, regionBottom, stackHeight, 0.5) +
+      Number(state.verticalOffset) * layoutScale;
+    cursorY = clamp(cursorY, regionTop, Math.max(regionTop, regionBottom - stackHeight));
+    if (hasEyebrow) {
+      drawEyebrowChip(
+        state.upperText,
+        contentX,
+        cursorY,
+        maxContentWidth,
+        layoutScale,
+        scale,
+        false,
+      );
+      cursorY += eyebrowHeight + firstGap;
+    }
+    drawBlock(mainBlock, contentX, cursorY);
+    cursorY += mainBlock.height + secondGap;
+    drawTutorialStepRail(steps, contentX, cursorY, maxContentWidth, layoutScale, scale);
   }
-  drawBlock(mainBlock, contentX, cursorY);
-  cursorY += mainBlock.height + secondGap;
-  drawTutorialStepRail(steps, contentX, cursorY, maxContentWidth, layoutScale, scale);
 
   drawSpacedText(
     state.footerText.trim(),
@@ -1877,25 +2125,61 @@ function renderProductContent({
     }
   }
 
-  let cursorY =
-    getOpticalStackTop(regionTop, regionBottom, stackHeight, 0.46) +
-    Number(state.verticalOffset) * layoutScale;
-  cursorY = clamp(cursorY, regionTop, Math.max(regionTop, regionBottom - stackHeight));
-  if (hasEyebrow) {
-    drawEyebrowChip(
-      state.upperText,
-      contentX,
-      cursorY,
-      maxContentWidth,
-      layoutScale,
-      scale,
-      true,
+  // 纯文字模式下测评条件、结论标题和结论依据各自独立定位，富余空间摊给四条缝隙；
+  // 有照片时照片已经占住下半区，仍按原来的整组视觉重心摆放。
+  if (!photoWindow) {
+    const offset = Number(state.verticalOffset) * layoutScale;
+    const blocks = [];
+    if (hasEyebrow) blocks.push({ kind: "eyebrow", height: eyebrowHeight, gap: firstGap });
+    blocks.push({ kind: "title", height: mainBlock.height, gap: secondGap });
+    if (subtitleBlock.height) {
+      blocks.push({ kind: "subtitle", height: subtitleBlock.height, gap: 0 });
+    }
+    const tops = distributeVerticalSlack(
+      regionTop + offset,
+      regionBottom,
+      blocks.map((block) => block.height),
+      blocks.map((block) => block.gap),
     );
-    cursorY += eyebrowHeight + firstGap;
+    blocks.forEach((block, index) => {
+      const top = tops[index];
+      if (block.kind === "eyebrow") {
+        drawEyebrowChip(
+          state.upperText,
+          contentX,
+          top,
+          maxContentWidth,
+          layoutScale,
+          scale,
+          true,
+        );
+      } else if (block.kind === "title") {
+        drawBlock(mainBlock, contentX, top);
+      } else {
+        drawBlock(subtitleBlock, contentX, top);
+      }
+    });
+  } else {
+    let cursorY =
+      getOpticalStackTop(regionTop, regionBottom, stackHeight, 0.46) +
+      Number(state.verticalOffset) * layoutScale;
+    cursorY = clamp(cursorY, regionTop, Math.max(regionTop, regionBottom - stackHeight));
+    if (hasEyebrow) {
+      drawEyebrowChip(
+        state.upperText,
+        contentX,
+        cursorY,
+        maxContentWidth,
+        layoutScale,
+        scale,
+        true,
+      );
+      cursorY += eyebrowHeight + firstGap;
+    }
+    drawBlock(mainBlock, contentX, cursorY);
+    cursorY += mainBlock.height + secondGap;
+    drawBlock(subtitleBlock, contentX, cursorY);
   }
-  drawBlock(mainBlock, contentX, cursorY);
-  cursorY += mainBlock.height + secondGap;
-  drawBlock(subtitleBlock, contentX, cursorY);
 
   drawSpacedText(
     state.footerText.trim(),
@@ -2000,9 +2284,9 @@ function renderConversationContent({
     panelHeight,
     panelRadius,
   );
-  context.fillStyle = normalizeHex(state.visualColor) || themes.openaiMono.visualColor;
+  context.fillStyle = normalizeHex(state.mediaColor) || defaults.mediaColor;
   context.fill();
-  context.strokeStyle = state.textColor;
+  context.strokeStyle = state.inkColor;
   context.globalAlpha = 0.18;
   context.lineWidth = 2 * layoutScale;
   context.stroke();
@@ -2087,12 +2371,15 @@ function drawDeepDiveVisual(metrics, layoutScale) {
     metrics.radius,
   );
   context.clip();
-  context.fillStyle = normalizeHex(state.visualColor) || "#D8D6E2";
+  const blockColor = normalizeHex(state.mediaColor) || defaults.mediaColor;
+  context.fillStyle = blockColor;
   context.fillRect(metrics.x, metrics.y, metrics.width, metrics.height);
 
-  // 借鉴 Claude 官网的温暖编辑感：用不规则曲线表达“思考路径”，不复刻品牌图标。
-  const accentColor = state.themeId === "claudeWarm" ? "#D97757" : state.cardColor;
-  context.strokeStyle = state.textColor;
+  // 三层结构：accent 块打底，墨线在上，承载色负责实心点，一个视觉块只出现一个色相。
+  const inkOnBlock = pickReadableInk(blockColor);
+  const accentColor =
+    getContrastRatio(state.cardColor, blockColor) >= 1.6 ? state.cardColor : inkOnBlock;
+  context.strokeStyle = inkOnBlock;
   context.lineWidth = 8 * layoutScale;
   context.lineCap = "round";
   context.lineJoin = "round";
@@ -2267,20 +2554,21 @@ function renderDeepDiveContent({
     },
   );
 
-  let titleTop = dividerY + 46 * layoutScale;
+  const regionTop = dividerY + 46 * layoutScale;
   let firstGap = 22 * layoutScale;
   let secondGap = 28 * layoutScale;
+  // 底沿留出足够空间给页脚：文案排满时也不会压到 EDITORIAL SERIES 这行。
   const safeBottom =
     visualWindow && !isMediaFirst
       ? visualWindow.y - 44 * layoutScale
-      : cardY + cardHeight - 72 * layoutScale;
-  const requestedHeight =
+      : cardY + cardHeight - 96 * layoutScale;
+  let requestedHeight =
     mainBlock.height +
     proofBlock.height +
     subtitleBlock.height +
     (proofBlock.height ? firstGap : 0) +
     (subtitleBlock.height ? secondGap : 0);
-  const availableHeight = Math.max(1, safeBottom - titleTop);
+  const availableHeight = Math.max(1, safeBottom - regionTop);
 
   if (requestedHeight > availableHeight) {
     const scale = availableHeight / requestedHeight;
@@ -2296,19 +2584,23 @@ function renderDeepDiveContent({
     subtitleBlock = scaleBlock(subtitleBlock);
     firstGap *= scale;
     secondGap *= scale;
+    requestedHeight = availableHeight;
   }
 
-  drawBlock(mainBlock, contentX, titleTop);
-  titleTop += mainBlock.height;
+  // 原来标题硬贴在分隔线下方，余量全部堆到卡片底部，形成一整块空白。
+  // 现在标题、论据和导读各自定位，富余空间摊到每条缝隙上。
+  const blocks = [{ block: mainBlock, gap: proofBlock.height ? firstGap : secondGap }];
   if (proofBlock.height) {
-    titleTop += firstGap;
-    drawBlock(proofBlock, contentX, titleTop);
-    titleTop += proofBlock.height;
+    blocks.push({ block: proofBlock, gap: subtitleBlock.height ? secondGap : 0 });
   }
-  if (subtitleBlock.height) {
-    titleTop += secondGap;
-    drawBlock(subtitleBlock, contentX, titleTop);
-  }
+  if (subtitleBlock.height) blocks.push({ block: subtitleBlock, gap: 0 });
+  const tops = distributeVerticalSlack(
+    regionTop + Number(state.verticalOffset) * layoutScale,
+    safeBottom,
+    blocks.map((entry) => entry.block.height),
+    blocks.map((entry) => entry.gap),
+  );
+  blocks.forEach((entry, index) => drawBlock(entry.block, contentX, tops[index]));
 
   drawSpacedText(
     state.footerText.trim(),
@@ -2365,9 +2657,9 @@ function renderModelLaunchContent({
     context.fillStyle = photoShade;
     context.fillRect(heroWindow.x, heroWindow.y, heroWindow.width, heroWindow.height);
   } else {
-    context.fillStyle = normalizeHex(state.visualColor) || themes.openaiMono.visualColor;
+    context.fillStyle = normalizeHex(state.mediaColor) || defaults.mediaColor;
     context.fillRect(heroWindow.x, heroWindow.y, heroWindow.width, heroWindow.height);
-    context.strokeStyle = state.textColor;
+    context.strokeStyle = pickReadableInk(normalizeHex(state.mediaColor) || defaults.mediaColor);
     context.globalAlpha = 0.18;
     context.lineWidth = 3 * layoutScale;
     context.beginPath();
@@ -2382,7 +2674,10 @@ function renderModelLaunchContent({
     context.globalAlpha = 1;
   }
 
-  const heroInk = photoWindow ? "#FFFFFF" : state.textColor;
+  // 照片上压半透明黑渐变，白字最稳；纯色主视觉块则按块底色重新选墨。
+  const heroInk = photoWindow
+    ? "#FFFFFF"
+    : pickReadableInk(normalizeHex(state.mediaColor) || defaults.mediaColor);
   const label = state.topLeft.trim();
   if (label) {
     let labelSize = 24 * layoutScale;
@@ -2481,7 +2776,7 @@ function renderModelLaunchContent({
     : heroWindow.y + heroWindow.height + 34 * layoutScale;
   const regionBottom = isSupportingPhoto
     ? heroWindow.y - 36 * layoutScale
-    : cardY + cardHeight - 74 * layoutScale;
+    : cardY + cardHeight - 96 * layoutScale;
   const availableHeight = Math.max(1, regionBottom - regionTop);
   if (stackHeight > availableHeight) {
     const fit = availableHeight / stackHeight;
@@ -2493,19 +2788,19 @@ function renderModelLaunchContent({
     stackHeight = availableHeight;
   }
 
-  const preferredTop = regionTop + Number(state.verticalOffset) * layoutScale;
-  let cursorY = clamp(
-    preferredTop,
-    regionTop,
-    Math.max(regionTop, regionBottom - stackHeight),
+  // 原来整组内容硬贴在主视觉下方，剩余空间全部落在页脚之上形成整块空白。
+  // 现在发布阶段、标题和升级维度各自定位，富余空间摊到每条缝隙上。
+  const blocks = [];
+  if (upperBlock.height) blocks.push({ block: upperBlock, gap: firstGap });
+  blocks.push({ block: mainBlock, gap: secondGap });
+  if (subtitleBlock.height) blocks.push({ block: subtitleBlock, gap: 0 });
+  const tops = distributeVerticalSlack(
+    regionTop + Number(state.verticalOffset) * layoutScale,
+    regionBottom,
+    blocks.map((entry) => entry.block.height),
+    blocks.map((entry) => entry.gap),
   );
-  if (upperBlock.height) {
-    drawBlock(upperBlock, contentX, cursorY);
-    cursorY += upperBlock.height + firstGap;
-  }
-  drawBlock(mainBlock, contentX, cursorY);
-  cursorY += mainBlock.height + secondGap;
-  drawBlock(subtitleBlock, contentX, cursorY);
+  blocks.forEach((entry, index) => drawBlock(entry.block, contentX, tops[index]));
 
   drawSpacedText(
     state.footerText.trim(),
@@ -2545,6 +2840,27 @@ function renderPoster() {
     CARD_CORNER_RADIUS * layoutScale,
   );
   context.fill();
+
+  // 满幅色场里 accent 与象牙卡可能只差一点明度，卡片轮廓会在白色信息流里消失。
+  // 对比过低时补一条低透明度墨边，把承载形的边界描出来，不改变整体气质。
+  if (getContrastRatio(state.cardColor, state.backgroundColor) < CARD_OUTLINE_MIN_RATIO) {
+    context.save();
+    context.strokeStyle = state.inkColor;
+    context.globalAlpha = 0.16;
+    context.lineWidth = 3 * layoutScale;
+    roundedRectPath(
+      context,
+      cardX,
+      cardY,
+      cardWidth,
+      cardHeight,
+      CARD_CORNER_RADIUS * layoutScale,
+    );
+    context.stroke();
+    context.restore();
+  }
+
+  drawEditorialTechDecorations({ cardX, cardY, cardWidth, cardHeight, layoutScale });
 
   const isDeepDive = state.noteType === "deepDive";
   const isModelLaunch = state.noteType === "hardwareVideo";
@@ -3182,15 +3498,6 @@ function syncControls() {
     "sidePadding",
   ].forEach((key) => setControlValue(key, state[key]));
 
-  document.querySelectorAll("[data-color]").forEach((input) => {
-    input.value = normalizeHex(state[input.dataset.color]) || defaults[input.dataset.color];
-  });
-  document.querySelectorAll("[data-hex]").forEach((input) => {
-    input.value = normalizeHex(state[input.dataset.hex]) || defaults[input.dataset.hex];
-    input.classList.remove("is-invalid");
-  });
-  updateColorContrastStatus();
-
   updateRangeOutputs();
   syncActiveTheme();
   syncFontPresetButtons();
@@ -3398,64 +3705,76 @@ function bindPreviewModes() {
   });
 }
 
-function bindColorControls() {
-  document.querySelectorAll("[data-color]").forEach((input) => {
-    input.addEventListener("input", () => {
-      const key = input.dataset.color;
-      state[key] = input.value.toUpperCase();
-      state.themeId = "custom";
-      const hexInput = document.querySelector(`[data-hex="${key}"]`);
-      hexInput.value = state[key];
-      hexInput.classList.remove("is-invalid");
-      document.querySelectorAll(".theme-chip").forEach((chip) => {
-        chip.classList.remove("is-active");
+// 配色列表按系列分组渲染，色值与受控装饰只在 themes 里维护一份，避免和 HTML 重复。
+function renderThemeList() {
+  if (!themeList) return;
+
+  themeList.textContent = "";
+  Object.entries(THEME_FAMILIES).forEach(([familyId, family]) => {
+    const group = document.createElement("div");
+    group.className = "theme-group";
+    group.dataset.themeFamily = familyId;
+
+    const heading = document.createElement("div");
+    heading.className = "theme-group-heading";
+    const name = document.createElement("strong");
+    name.textContent = family.label;
+    const hint = document.createElement("span");
+    hint.textContent = family.hint;
+    heading.append(name, hint);
+
+    const chips = document.createElement("div");
+    chips.className = "theme-group-chips";
+    Object.entries(themes)
+      .filter(([, theme]) => theme.family === familyId)
+      .forEach(([themeId, theme]) => {
+        const chip = document.createElement("button");
+        chip.className = "theme-chip";
+        chip.type = "button";
+        chip.dataset.theme = themeId;
         chip.setAttribute("aria-pressed", "false");
+
+        const preview = document.createElement("span");
+        preview.className = "theme-chip-preview";
+        preview.setAttribute("aria-hidden", "true");
+        preview.style.setProperty("--chip-field", theme.backgroundColor);
+        preview.style.setProperty("--chip-card", theme.cardColor);
+        preview.style.setProperty("--chip-ink", theme.inkColor);
+        if (theme.decorator) preview.dataset.decorator = theme.decorator;
+        if (theme.accentColor) preview.style.setProperty("--chip-accent", theme.accentColor);
+
+        const copy = document.createElement("span");
+        copy.className = "theme-chip-copy";
+        const title = document.createElement("strong");
+        title.textContent = theme.label;
+        copy.append(title);
+
+        chip.append(preview, copy);
+        chips.append(chip);
       });
-      syncActiveTheme();
-      updateColorContrastStatus();
-      scheduleRender();
-    });
-  });
 
-  document.querySelectorAll("[data-hex]").forEach((input) => {
-    input.addEventListener("input", () => {
-      const key = input.dataset.hex;
-      const normalized = normalizeHex(input.value);
-      input.classList.toggle("is-invalid", !normalized);
-      if (!normalized) return;
-
-      state[key] = normalized;
-      state.themeId = "custom";
-      document.querySelector(`[data-color="${key}"]`).value = normalized;
-      document.querySelectorAll(".theme-chip").forEach((chip) => {
-        chip.classList.remove("is-active");
-        chip.setAttribute("aria-pressed", "false");
-      });
-      syncActiveTheme();
-      updateColorContrastStatus();
-      scheduleRender();
-    });
-
-    input.addEventListener("blur", () => {
-      const key = input.dataset.hex;
-      input.value = normalizeHex(state[key]) || defaults[key];
-      input.classList.remove("is-invalid");
-    });
+    group.append(heading, chips);
+    themeList.append(group);
   });
 }
 
-function bindThemes() {
-  document.querySelectorAll(".theme-chip").forEach((button) => {
-    button.addEventListener("click", () => {
-      const theme = themes[button.dataset.theme];
-      if (!theme) return;
+function applyTheme(themeId, { notify = true, markCustom = true } = {}) {
+  const themeColors = getThemeColors(themeId);
+  if (!themeColors) return;
 
-      const { label, ...themeColors } = theme;
-      state = { ...state, ...themeColors, themeId: button.dataset.theme };
-      syncControls();
-      scheduleRender();
-      showToast(`已切换为「${label}」，构图保持不变`);
-    });
+  state = { ...state, ...themeColors, themeId };
+  if (markCustom) state.themeCustomized = true;
+  syncControls();
+  scheduleRender();
+  if (notify) showToast(`已切换为「${themes[themeId].label}」，构图保持不变`);
+}
+
+function bindThemes() {
+  if (!themeList) return;
+  themeList.addEventListener("click", (event) => {
+    const chip = event.target.closest(".theme-chip");
+    if (!chip || !themeList.contains(chip)) return;
+    applyTheme(chip.dataset.theme);
   });
 }
 
@@ -3469,6 +3788,7 @@ function bindFontPresetControls() {
       state.titleFontFamily = preset.titleFontFamily;
       markStyleCustomized();
       ensureFontReady(state.fontFamily);
+      ensureFontReady(state.titleFontFamily);
       syncControls();
       scheduleRender();
       showToast(`已切换为「${preset.label}」`);
@@ -3911,11 +4231,18 @@ async function createPresetFeedCovers() {
       const preset = getNoteTypePreset(noteType);
       const framePreset = photoLayoutPresets[preset.photoLayout];
       const { label, description, ...styleValues } = preset;
+      // 每套样式用它自己的默认配色，这样这组对比才等于主页真实会长成的样子；
+      // 用户手动挑过配色时以用户的选择为准，五张统一走那一套色。
+      const themeId = state.themeCustomized
+        ? null
+        : NOTE_TYPE_DEFAULT_THEMES[noteType];
       state = {
         ...originalState,
         ...styleValues,
         ...framePreset,
         ...PRESET_FEED_CONTENT[noteType],
+        ...(getThemeColors(themeId) || {}),
+        ...(themeId ? { themeId } : {}),
         noteType,
         contentMode: ["product", "deepDive", "hardwareVideo"].includes(noteType)
           ? "photo"
@@ -3927,7 +4254,7 @@ async function createPresetFeedCovers() {
         photoFocusY: 50,
         photoEditMode: "frame",
       };
-      // 所有样式使用当前同一主题；图文样式读取内置本地示例，突出“构图”和“配色”的独立关系。
+      // 图文样式读取内置本地示例照片，不访问用户相册。
       uploadedPhoto = null;
       renderPoster();
       covers.push({
@@ -4127,12 +4454,12 @@ function resetPoster() {
 }
 
 function initialize() {
+  renderThemeList();
   bindNoteTypeControls();
   bindTemplateCopyGuideControls();
   bindCustomStyleControls();
   bindStandardControls();
   bindTitleLineSizeControls();
-  bindColorControls();
   bindThemes();
   bindFontPresetControls();
   bindPhotoLayoutControls();

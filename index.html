@@ -11,7 +11,7 @@
       content="一个零依赖、适配小红书 3:4 图文封面、支持列表预览和高清导出的封面生成器。"
     />
     <title>小红书封面生成器</title>
-    <link rel="stylesheet" href="./styles.css?v=20260811-1" />
+    <link rel="stylesheet" href="./styles.css?v=20260814-1" />
   </head>
   <body>
     <a class="skip-link" href="#mainWorkspace">跳到编辑区</a>
@@ -21,7 +21,7 @@
           <p class="eyebrow">POSTER STUDIO</p>
           <h1>小红书封面生成器</h1>
           <p class="header-copy">
-            先选构图，再选择纯文字或图文呈现；配色独立切换，预览与导出保持一致。
+            先选构图，再选择纯文字或图文呈现；配色跟随模板给默认值，预览与导出保持一致。
           </p>
         </div>
         <div class="header-actions">
@@ -40,11 +40,13 @@
               <a href="#noteTypeParameters">样式</a>
               <a href="#contentParameters">文案</a>
               <a href="#photoParameters">图文</a>
-              <a href="#styleParameters">主题</a>
-              <a href="#layoutParameters">微调</a>
+              <a href="#styleParameters">配色</a>
+              <a href="#fontParameters">字体</a>
+              <a href="#tuningParameters">微调</a>
             </div>
           </nav>
 
+          <div class="control-sections">
           <section class="control-section" id="noteTypeParameters">
             <div class="section-heading">
               <span class="step">01</span>
@@ -117,7 +119,7 @@
               <div>
                 <strong id="styleStatus">当前样式：对话工作台</strong>
                 <p id="styleDescription">
-                  问题标题与 Prompt 卡片形成对话感；切换样式不会改变当前配色。
+                  问题标题与 Prompt 卡片形成对话感。下方原稿给出最佳字数与换行。
                 </p>
               </div>
             </div>
@@ -291,8 +293,8 @@
             <div class="section-heading">
               <span class="step">03</span>
               <div>
-                <h2>配色与字体</h2>
-                <p>主题只改变颜色，构图保持不动；字体用于控制语气，不改变内容。</p>
+                <h2>配色</h2>
+                <p>选择整套配色，构图骨架与文字位置保持不变。</p>
               </div>
             </div>
 
@@ -310,6 +312,26 @@
             <div class="quick-style-section">
               <div class="quick-style-heading">
                 <div>
+                  <strong>配色方案</strong>
+                  <span>深底高对比 5 组，满幅色场 6 组</span>
+                </div>
+              </div>
+              <div class="theme-list" id="themeList" aria-label="配色预设"></div>
+            </div>
+          </section>
+
+          <section class="control-section" id="fontParameters">
+            <div class="section-heading">
+              <span class="step">04</span>
+              <div>
+                <h2>字体</h2>
+                <p>字体用于控制语气，不改变内容与构图。</p>
+              </div>
+            </div>
+
+            <div class="quick-style-section">
+              <div class="quick-style-heading">
+                <div>
                   <strong>字体类型</strong>
                   <span>默认按笔记类型匹配，也可覆盖当前单篇</span>
                 </div>
@@ -320,7 +342,7 @@
                   <span>对话、清单、证据、发布：现代黑体</span>
                   <span>编辑杂志：衬线主标题＋现代黑体正文</span>
                 </p>
-                <small>圆体、手写体只建议偶尔用于单篇变化，避免主页字体过多。</small>
+                <small>科技感由配色、留白和边缘标记承担；圆体、手写体只用于偶尔变化。</small>
               </aside>
               <div class="font-preset-grid" aria-label="字体类型">
                 <button
@@ -365,103 +387,22 @@
                 </button>
               </div>
             </div>
+          </section>
 
-            <div class="quick-style-section">
-              <div class="quick-style-heading">
-                <div>
-                  <strong>配色方案</strong>
-                  <span>精选 10 组；只换颜色，不改变当前构图</span>
-                </div>
-              </div>
-              <div class="theme-list" aria-label="配色预设">
-                <button class="theme-chip" data-theme="openaiMono" type="button" aria-pressed="false">
-                  <span class="theme-chip-preview" aria-hidden="true" style="--chip-a: #000000; --chip-b: #101010; --chip-c: #f7f7f7; --chip-d: #303030"></span>
-                  <span class="theme-chip-copy"><strong>OpenAI 黑白</strong><small>极简 · 发布</small></span>
-                </button>
-                <button class="theme-chip" data-theme="claudeWarm" type="button" aria-pressed="false">
-                  <span class="theme-chip-preview" aria-hidden="true" style="--chip-a: #141413; --chip-b: #1f1e1d; --chip-c: #faf9f5; --chip-d: #8d3f2b"></span>
-                  <span class="theme-chip-copy"><strong>Claude 暖黑</strong><small>温暖 · 思考</small></span>
-                </button>
-                <button class="theme-chip" data-theme="forestPaper" type="button" aria-pressed="false">
-                  <span class="theme-chip-preview" aria-hidden="true" style="--chip-a: #173027; --chip-b: #f0e6cf; --chip-c: #19352b; --chip-d: #d8d6e2"></span>
-                  <span class="theme-chip-copy"><strong>森林纸感</strong><small>克制 · 日常</small></span>
-                </button>
-                <button class="theme-chip" data-theme="inkPaper" type="button" aria-pressed="false">
-                  <span class="theme-chip-preview" aria-hidden="true" style="--chip-a: #171918; --chip-b: #f7f1e5; --chip-c: #191a18; --chip-d: #ddd5c6"></span>
-                  <span class="theme-chip-copy"><strong>黑墨纸张</strong><small>编辑 · 高级</small></span>
-                </button>
-                <button class="theme-chip" data-theme="oceanIce" type="button" aria-pressed="false">
-                  <span class="theme-chip-preview" aria-hidden="true" style="--chip-a: #0b214a; --chip-b: #b8d3ff; --chip-c: #0a1836; --chip-d: #91b8f4"></span>
-                  <span class="theme-chip-copy"><strong>海盐蓝</strong><small>理性 · 清爽</small></span>
-                </button>
-                <button class="theme-chip" data-theme="coralInk" type="button" aria-pressed="false">
-                  <span class="theme-chip-preview" aria-hidden="true" style="--chip-a: #092d2b; --chip-b: #ff6847; --chip-c: #071e1d; --chip-d: #f1c5a1"></span>
-                  <span class="theme-chip-copy"><strong>珊瑚墨绿</strong><small>高能 · 实测</small></span>
-                </button>
-                <button class="theme-chip" data-theme="lemonPlum" type="button" aria-pressed="false">
-                  <span class="theme-chip-preview" aria-hidden="true" style="--chip-a: #322044; --chip-b: #d9f46c; --chip-c: #241631; --chip-d: #c9a7eb"></span>
-                  <span class="theme-chip-copy"><strong>青柠紫</strong><small>醒目 · 清单</small></span>
-                </button>
-                <button class="theme-chip" data-theme="berryCloud" type="button" aria-pressed="false">
-                  <span class="theme-chip-preview" aria-hidden="true" style="--chip-a: #6d2848; --chip-b: #bdd8ff; --chip-c: #28172b; --chip-d: #e9bed1"></span>
-                  <span class="theme-chip-copy"><strong>莓果云朵</strong><small>柔和 · 生活</small></span>
-                </button>
-                <button class="theme-chip" data-theme="cyanNight" type="button" aria-pressed="false">
-                  <span class="theme-chip-preview" aria-hidden="true" style="--chip-a: #06242a; --chip-b: #62d9d4; --chip-c: #052126; --chip-d: #a7e2de"></span>
-                  <span class="theme-chip-copy"><strong>夜光青</strong><small>科技 · 冷静</small></span>
-                </button>
-                <button class="theme-chip" data-theme="clayPaper" type="button" aria-pressed="false">
-                  <span class="theme-chip-preview" aria-hidden="true" style="--chip-a: #d77656; --chip-b: #fbf7ef; --chip-c: #191918; --chip-d: #e8d7c7"></span>
-                  <span class="theme-chip-copy"><strong>陶土米白</strong><small>温暖 · 叙事</small></span>
-                </button>
+          <section class="control-section" id="tuningParameters">
+            <div class="section-heading">
+              <span class="step">05</span>
+              <div>
+                <h2>排版微调</h2>
+                <p>字号、行距与间距；不改动也能得到完整成品。</p>
               </div>
             </div>
 
             <div class="custom-style-controls" id="customStyleControls">
               <div class="custom-style-heading">
-                <strong>高级微调</strong>
-                <span>精确色值、字体拆分与排版</span>
+                <strong>排版微调</strong>
+                <span>字体拆分、字号与间距；颜色只由上方配色方案决定</span>
               </div>
-
-              <div class="color-grid">
-                <div class="color-field">
-                  <span>画布背景</span>
-                  <div class="color-inputs">
-                    <input
-                      aria-label="选择画布背景颜色"
-                      data-color="backgroundColor"
-                      type="color"
-                    />
-                    <input
-                      aria-label="输入画布背景色值"
-                      data-hex="backgroundColor"
-                      type="text"
-                    />
-                  </div>
-                </div>
-                <div class="color-field">
-                  <span>卡片颜色</span>
-                  <div class="color-inputs">
-                    <input aria-label="选择卡片颜色" data-color="cardColor" type="color" />
-                    <input aria-label="输入卡片色值" data-hex="cardColor" type="text" />
-                  </div>
-                </div>
-                <div class="color-field">
-                  <span>文字颜色</span>
-                  <div class="color-inputs">
-                    <input aria-label="选择文字颜色" data-color="textColor" type="color" />
-                    <input aria-label="输入文字色值" data-hex="textColor" type="text" />
-                  </div>
-                </div>
-                <div class="color-field">
-                  <span>视觉区域</span>
-                  <div class="color-inputs">
-                    <input aria-label="选择视觉区域颜色" data-color="visualColor" type="color" />
-                    <input aria-label="输入视觉区域色值" data-hex="visualColor" type="text" />
-                  </div>
-                </div>
-              </div>
-              <p class="color-contrast-status" id="colorContrastStatus" role="status"></p>
 
               <div class="field-grid field-grid-two">
                 <label class="field">
@@ -539,6 +480,7 @@
               </details>
             </div>
           </section>
+          </div>
         </aside>
 
         <section class="preview-shell" aria-labelledby="previewTitle">
@@ -731,6 +673,6 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <script src="./assets/published-covers.js?v=20260806-2" defer></script>
-    <script src="./app.js?v=20260811-1" defer></script>
+    <script src="./app.js?v=20260814-1" defer></script>
   </body>
 </html>

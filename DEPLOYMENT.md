@@ -197,8 +197,8 @@ systemctl is-active nginx
 curl -fsSI http://14.103.53.126/
 curl -fsSI http://14.103.53.126/poster
 curl -fsSI http://14.103.53.126/poster/
-curl -fsSI 'http://14.103.53.126/poster/styles.css?v=20260811-1'
-curl -fsSI 'http://14.103.53.126/poster/app.js?v=20260811-1'
+curl -fsSI 'http://14.103.53.126/poster/styles.css?v=20260814-1'
+curl -fsSI 'http://14.103.53.126/poster/app.js?v=20260814-1'
 curl -fsSI 'http://14.103.53.126/poster/assets/published-covers.js?v=20260806-2'
 curl -fsSI http://14.103.53.126/poster/assets/presets/editorial-workbench-sample-v1.jpg
 curl -fsSI http://14.103.53.126/poster/assets/fonts/Yozai-Medium.ttf
@@ -214,7 +214,7 @@ curl -fsSI http://14.103.53.126/poster/assets/fonts/Yozai-Medium.ttf
 
 1. 切换五套模板，确认首次进入会载入模板原稿，改写后返回会恢复该模板自己的草稿。
 2. 点击“载入最佳示例 / 恢复载入前文案”，确认不会意外丢失当前文案。
-3. 切换十套配色，并选择“自然手写”确认预览和导出字形一致。
+3. 切换两套色系共十一组配色，并选择“自然手写”确认预览和导出字形一致。
 4. 选择照片，在“调整区域”中拖动照片模块并从四角调整宽高。
 5. 切换“调整取景”，直接拖动区域内的照片内容，并切换“纯文字 / 图文佐证 / 大图主导”。
 6. 确认卡片宽高与圆角没有逐篇调节入口。
