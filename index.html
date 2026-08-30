@@ -11,7 +11,7 @@
       content="一个零依赖、适配小红书 3:4 图文封面、支持列表预览和高清导出的封面生成器。"
     />
     <title>小红书封面生成器</title>
-    <link rel="stylesheet" href="./styles.css?v=20260814-1" />
+    <link rel="stylesheet" href="./styles.css?v=20260830-19" />
   </head>
   <body>
     <a class="skip-link" href="#mainWorkspace">跳到编辑区</a>
@@ -21,7 +21,7 @@
           <p class="eyebrow">POSTER STUDIO</p>
           <h1>小红书封面生成器</h1>
           <p class="header-copy">
-            先选构图，再选择纯文字或图文呈现；配色跟随模板给默认值，预览与导出保持一致。
+            先写文案，再决定哪些模块出现、主视觉放哪，最后调配色与排版。切换呈现不会动你的文字。
           </p>
         </div>
         <div class="header-actions">
@@ -37,9 +37,8 @@
           <nav class="parameter-nav" aria-label="参数快速定位">
             <strong>参数工作台</strong>
             <div class="parameter-nav-links">
-              <a href="#noteTypeParameters">样式</a>
               <a href="#contentParameters">文案</a>
-              <a href="#photoParameters">图文</a>
+              <a href="#photoSection">呈现</a>
               <a href="#styleParameters">配色</a>
               <a href="#fontParameters">字体</a>
               <a href="#tuningParameters">微调</a>
@@ -47,154 +46,133 @@
           </nav>
 
           <div class="control-sections">
-          <section class="control-section" id="noteTypeParameters">
+          <section class="control-section" id="contentParameters">
             <div class="section-heading">
               <span class="step">01</span>
               <div>
-                <h2>选择封面样式</h2>
-                <p>每套模板都有专属原稿；先看最佳排版，再按字段替换成你的内容。</p>
-              </div>
-            </div>
-
-            <div class="note-type-grid" aria-label="笔记类型">
-              <button
-                class="note-type-button is-active"
-                data-note-type="experience"
-                type="button"
-                aria-pressed="true"
-              >
-                <span class="note-type-preview preview-statement" aria-hidden="true">
-                  <i></i><b></b><b></b><em></em>
-                </span>
-                <span><strong>对话工作台</strong><small>问题主导 · Prompt 卡片</small></span>
-              </button>
-              <button
-                class="note-type-button"
-                data-note-type="tutorial"
-                type="button"
-                aria-pressed="false"
-              >
-                <span class="note-type-preview preview-checklist" aria-hidden="true">
-                  <i></i><b></b><b></b><em></em>
-                </span>
-                <span><strong>编号清单</strong><small>步骤卡片 · 收藏导向</small></span>
-              </button>
-              <button
-                class="note-type-button"
-                data-note-type="product"
-                type="button"
-                aria-pressed="false"
-              >
-                <span class="note-type-preview preview-evidence" aria-hidden="true">
-                  <i></i><b></b><b></b><em></em>
-                </span>
-                <span><strong>证据图文</strong><small>照片佐证 · 实测结论</small></span>
-              </button>
-              <button
-                class="note-type-button"
-                data-note-type="deepDive"
-                type="button"
-                aria-pressed="false"
-              >
-                <span class="note-type-preview preview-editorial" aria-hidden="true">
-                  <i></i><b></b><b></b><em></em>
-                </span>
-                <span><strong>编辑杂志</strong><small>暖黑衬线 · 手绘导读</small></span>
-              </button>
-              <button
-                class="note-type-button note-type-button-new"
-                data-note-type="hardwareVideo"
-                type="button"
-                aria-pressed="false"
-              >
-                <span class="note-type-preview preview-split" aria-hidden="true">
-                  <i></i><b></b><b></b><em></em>
-                </span>
-                <span><strong>模型发布</strong><small>超大编号 · 图片主导</small></span>
-                <span class="note-type-badge" aria-hidden="true">NEW</span>
-              </button>
-            </div>
-
-            <div class="brand-mode-card">
-              <div>
-                <strong id="styleStatus">当前样式：对话工作台</strong>
-                <p id="styleDescription">
-                  问题标题与 Prompt 卡片形成对话感。下方原稿给出最佳字数与换行。
-                </p>
+                <h2>写文案</h2>
+                <p>先把话说清楚。每个字段自带写法和示例，写完再决定怎么呈现。</p>
               </div>
             </div>
 
             <section class="template-copy-guide" aria-labelledby="templateCopyGuideTitle">
               <div class="template-copy-guide-heading">
                 <div>
-                  <strong id="templateCopyGuideTitle">模板原稿</strong>
-                  <span id="templateCopyGuideBestFor">适合问答、观点和需求拆解</span>
+                  <strong id="templateCopyGuideTitle">写法参考</strong>
+                  <span id="templateCopyGuideBestFor">适合测评、产品体验、结果对比</span>
                 </div>
                 <div class="template-copy-guide-actions">
-                  <button id="applyTemplateExampleButton" type="button">载入最佳示例</button>
+                  <button id="applyTemplateExampleButton" type="button">载入示例文案</button>
                   <button id="restoreTemplateContentButton" type="button" hidden>
                     恢复载入前文案
                   </button>
                 </div>
               </div>
               <p class="template-copy-guide-summary" id="templateCopyGuideSummary">
-                先呈现读者正在问的问题，再用 Prompt 卡补齐上下文。
+                先给真实测试条件和明确结论，再用一张图片承担证据。
               </p>
-              <div class="template-copy-guide-list" id="templateCopyGuideList"></div>
-              <p class="template-copy-guide-note">
-                第一次切换到其他模板会载入它的原稿；改写后再次返回，会恢复该模板的草稿。
-              </p>
+              <details class="template-copy-guide-details">
+                <summary>逐字段规则与示例</summary>
+                <div class="template-copy-guide-list" id="templateCopyGuideList"></div>
+                <p class="template-copy-guide-note">
+                  同一份规则已经显示在下方每个输入框上。「载入示例文案」会整体替换当前文案，可以用「恢复载入前文案」撤回。
+                </p>
+              </details>
             </section>
-          </section>
-
-          <section class="control-section" id="contentParameters">
-            <div class="section-heading">
-              <span class="step">02</span>
-              <div>
-                <h2>填写内容</h2>
-                <p>先写清主标题，再补背景和结论；手动换行可以控制视觉重点。</p>
-              </div>
-            </div>
 
             <div class="field-grid field-grid-two">
               <label class="field">
-                <span>左上角</span>
+                <span><b>左上角</b></span>
                 <input id="topLeft" name="topLeft" type="text" placeholder="可留空" />
               </label>
               <label class="field">
-                <span>右上角</span>
+                <span><b>右上角</b></span>
                 <input id="topRight" name="topRight" type="text" />
               </label>
             </div>
+            <small class="field-hint" id="cornerHint"></small>
 
             <label class="field">
-              <span>上方副标题 <small id="upperTextHint">一句背景或分类标签</small></span>
-              <textarea id="upperText" name="upperText" rows="3"></textarea>
+              <span><b>上方副标题</b><small id="upperTextHint"></small></span>
+              <textarea id="upperText" name="upperText" rows="1" data-autosize></textarea>
             </label>
 
             <label class="field">
-              <span>主标题 <small id="titleTextHint">建议 12–24 个字；换行决定强调位置</small></span>
-              <textarea id="titleText" name="titleText" rows="3"></textarea>
+              <span>
+                <b>主标题 <output class="field-count" id="titleTextCount"></output></b>
+                <small id="titleTextHint"></small>
+              </span>
+              <textarea id="titleText" name="titleText" rows="1" data-autosize></textarea>
             </label>
 
             <label class="field">
-              <span>下方副标题 <small id="subtitleTextHint">补充结果、步骤或证据</small></span>
-              <textarea id="subtitleText" name="subtitleText" rows="2"></textarea>
+              <span><b>下方副标题</b><small id="subtitleTextHint"></small></span>
+              <textarea id="subtitleText" name="subtitleText" rows="1" data-autosize></textarea>
             </label>
 
             <div class="footer-field-grid">
               <label class="field">
-                <span>底部文字</span>
+                <span><b>底部文字</b></span>
                 <input id="footerText" name="footerText" type="text" placeholder="可留空" />
               </label>
               <label class="field">
-                <span>对齐方式</span>
+                <span><b>对齐方式</b></span>
                 <select id="footerAlign" name="footerAlign">
                   <option value="left">左对齐</option>
                   <option value="center">居中</option>
                   <option value="right">右对齐</option>
                 </select>
               </label>
+            </div>
+            <small class="field-hint" id="footerTextHint"></small>
+          </section>
+
+          <section class="control-section" id="photoSection">
+            <div class="section-heading">
+              <span class="step">02</span>
+              <div>
+                <h2>选呈现与模块</h2>
+                <p>文案写好后，决定哪些模块出现、主视觉放哪。关掉模块不会删掉你的文字。</p>
+              </div>
+            </div>
+
+
+            <div class="module-card" aria-label="模块开关">
+              <div class="module-card-heading">
+                <div>
+                  <strong>模块</strong>
+                  <small>关掉只是不显示，输入框里的文字仍然保留</small>
+                </div>
+              </div>
+              <div class="module-list">
+                <label class="module-row">
+                  <input type="checkbox" data-module-toggle="corner" />
+                  <span><b>角标</b><small>左上角与右上角</small></span>
+                </label>
+                <label class="module-row">
+                  <input type="checkbox" data-module-toggle="eyebrow" />
+                  <span><b>上方副标题</b><small>标题上方的小标签</small></span>
+                </label>
+                <label class="module-row">
+                  <input type="checkbox" data-module-toggle="subtitle" />
+                  <span><b>下方副标题</b><small>结论依据</small></span>
+                </label>
+                <label class="module-row">
+                  <input type="checkbox" data-module-toggle="bigNumber" />
+                  <span><b>超大编号</b><small>取右上角的内容，做版本号主视觉</small></span>
+                </label>
+                <label class="module-row">
+                  <input type="checkbox" data-module-toggle="footer" />
+                  <span><b>底部文字</b><small>系列名或来源标签</small></span>
+                </label>
+              </div>
+              <div class="module-slot-row">
+                <span>下方副标题位置</span>
+                <div class="module-slot-picker" role="group" aria-label="下方副标题位置">
+                  <button type="button" data-subtitle-slot="below" aria-pressed="true">标题下方</button>
+                  <button type="button" data-subtitle-slot="above" aria-pressed="false">标题上方</button>
+                </div>
+              </div>
             </div>
 
             <div class="photo-upload-card" id="photoParameters">
@@ -226,8 +204,8 @@
                   type="button"
                   aria-pressed="false"
                 >
-                  <strong>图文佐证</strong>
-                  <span>标题先读 · 图片补充</span>
+                  <strong>图在标题下方</strong>
+                  <span>标题先读 · 图片佐证</span>
                 </button>
                 <button
                   class="photo-layout-button"
@@ -235,7 +213,7 @@
                   type="button"
                   aria-pressed="false"
                 >
-                  <strong>大图主导</strong>
+                  <strong>图在标题上方</strong>
                   <span>图片先读 · 结论收尾</span>
                 </button>
               </div>
@@ -305,7 +283,7 @@
               </div>
               <p><strong>1080 × 1440 px</strong><span>3:4 竖版</span></p>
               <small
-                >卡片固定为 84% 宽、88% 高和 52 px 圆角；五种风格的外轮廓始终一致。</small
+                >卡片固定为 84% 宽、88% 高和 52 px 圆角；两种风格的外轮廓始终一致。</small
               >
             </div>
 
@@ -313,7 +291,7 @@
               <div class="quick-style-heading">
                 <div>
                   <strong>配色方案</strong>
-                  <span>深底高对比 5 组，满幅色场 6 组</span>
+                  <span id="themeCountHint">按色系分组，整套切换</span>
                 </div>
               </div>
               <div class="theme-list" id="themeList" aria-label="配色预设"></div>
@@ -333,14 +311,14 @@
               <div class="quick-style-heading">
                 <div>
                   <strong>字体类型</strong>
-                  <span>默认按笔记类型匹配，也可覆盖当前单篇</span>
+                  <span>默认现代黑体，可覆盖当前单篇</span>
                 </div>
               </div>
               <aside class="font-guidance" aria-label="字体使用建议">
                 <strong>默认建议</strong>
                 <p>
-                  <span>对话、清单、证据、发布：现代黑体</span>
-                  <span>编辑杂志：衬线主标题＋现代黑体正文</span>
+                  <span>默认现代黑体，中文长标题最稳</span>
+                  <span>想换语气时再考虑圆体或衬线</span>
                 </p>
                 <small>科技感由配色、留白和边缘标记承担；圆体、手写体只用于偶尔变化。</small>
               </aside>
@@ -426,9 +404,30 @@
                 </label>
               </div>
 
+              <div class="rhythm-preset-block">
+                <div class="rhythm-preset-heading">
+                  <strong>排版节奏</strong>
+                  <span>一次调好行距、组间距和副标题字号</span>
+                </div>
+                <div class="rhythm-preset-grid" role="group" aria-label="排版节奏">
+                  <button data-rhythm-preset="tight" type="button" aria-pressed="false">
+                    <strong>紧凑</strong><span>收紧间距</span>
+                  </button>
+                  <button data-rhythm-preset="standard" type="button" aria-pressed="false">
+                    <strong>标准</strong><span>推荐排版</span>
+                  </button>
+                  <button data-rhythm-preset="airy" type="button" aria-pressed="false">
+                    <strong>宽松</strong><span>留白更多</span>
+                  </button>
+                </div>
+              </div>
+
               <div class="range-list">
                 <label class="range-field">
-                  <span>主标题基础字号 <output data-output="mainSize"></output></span>
+                  <span class="range-field-label">
+                    <b>主标题基础字号 <output data-output="mainSize"></output></b>
+                    <button id="maximizeTitleSizeButton" type="button">放到最大</button>
+                  </span>
                   <input id="mainSize" min="60" max="360" step="2" type="range" />
                 </label>
                 <label class="range-field">
@@ -449,7 +448,7 @@
                     <button id="resetTitleLineSizesButton" type="button">恢复自动</button>
                   </div>
                   <div class="title-line-size-list" id="titleLineSizeList"></div>
-                  <p>显示的是目标字号；长行会按宽度收敛，三行以上会自动平衡短句与长句的视觉重量。</p>
+                  <p>显示的是画布上的实际字号；长行会按宽度收敛，三行以上会自动平衡短句与长句的视觉重量。</p>
                 </section>
                 <label class="range-field">
                   <span>内容间距 <output data-output="groupGap"></output></span>
@@ -585,7 +584,7 @@
               <div>
                 <strong>放进真实主页里检查</strong>
                 <span id="historyStatus" aria-live="polite"
-                  >可加载已发布封面、五种预设或本地图片，不会保存或上传</span
+                  >可加载已发布封面、两种预设或本地图片，不会保存或上传</span
                 >
               </div>
               <div class="history-preview-actions">
@@ -601,7 +600,7 @@
                   id="loadPresetCoversButton"
                   type="button"
                 >
-                  五种预设
+                  两种预设
                 </button>
                 <label class="history-upload-button">
                   本地封面
@@ -635,7 +634,7 @@
                 </article>
                 <article class="feed-empty-state" id="historyEmptyState">
                   <strong>当前只展示正在编辑的封面</strong>
-                  <span>加载已发布封面和五种预设后，可以直接判断主页是否协调。</span>
+                  <span>加载已发布封面和两种预设后，可以直接判断主页是否协调。</span>
                 </article>
               </div>
             </div>
@@ -673,6 +672,6 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <script src="./assets/published-covers.js?v=20260806-2" defer></script>
-    <script src="./app.js?v=20260814-1" defer></script>
+    <script src="./app.js?v=20260830-19" defer></script>
   </body>
 </html>

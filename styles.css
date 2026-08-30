@@ -423,23 +423,6 @@ summary:focus-visible {
   box-shadow: 0 8px 22px rgba(15, 63, 60, 0.08);
 }
 
-.note-type-button-new {
-  grid-column: 1 / -1;
-  grid-template-columns: 54px minmax(0, 1fr) auto;
-}
-
-.note-type-badge {
-  align-self: start;
-  padding: 5px 7px;
-  border-radius: 999px;
-  color: #f7f7f7;
-  background: #171918;
-  font-size: 8px;
-  font-weight: 850;
-  letter-spacing: 0.1em;
-  line-height: 1;
-}
-
 .note-type-preview {
   position: relative;
   display: block;
@@ -490,95 +473,12 @@ summary:focus-visible {
 }
 
 /* 五张缩略图跟随各模板的默认配色，避免选样式时看到的颜色和实际成图不一致。 */
-.preview-statement {
-  --preview-outer: #bcd1ca;
-  --preview-card: #faf9f5;
-  --preview-ink: #141413;
-  --preview-media: #bcd1ca;
-}
-
-.preview-statement b {
-  top: 20px;
-  left: 9px;
-  width: 31px;
-  height: 5px;
-}
-
-.preview-statement b + b {
-  top: 28px;
-  left: 12px;
-  width: 27px;
-  height: 5px;
-}
-
-.preview-statement em {
-  right: 6px;
-  bottom: 7px;
-  left: 6px;
-  height: 15px;
-  border-radius: 5px;
-  background:
-    radial-gradient(
-      circle at calc(100% - 6px) calc(100% - 5px),
-      var(--preview-card) 0 2px,
-      transparent 2.5px
-    ),
-    linear-gradient(var(--preview-media), var(--preview-media));
-  opacity: 1;
-}
-
-.preview-checklist {
-  --preview-outer: #6a9bcc;
-  --preview-card: #faf9f5;
-  --preview-ink: #141413;
-  --preview-media: #6a9bcc;
-}
-
-.preview-checklist em {
-  top: 44px;
-  right: 7px;
-  bottom: auto;
-  left: 7px;
-  height: 7px;
-  border-radius: 0;
-  background:
-    radial-gradient(circle at 3px 50%, var(--preview-ink) 0 3px, transparent 3.5px),
-    radial-gradient(circle at 50% 50%, var(--preview-ink) 0 3px, transparent 3.5px),
-    radial-gradient(
-      circle at calc(100% - 3px) 50%,
-      var(--preview-ink) 0 3px,
-      transparent 3.5px
-    ),
-    linear-gradient(
-      transparent 3px,
-      color-mix(in srgb, var(--preview-ink) 42%, transparent) 3px 4px,
-      transparent 4px
-    );
-  opacity: 1;
-}
-
-.preview-checklist b {
-  top: 20px;
-  height: 7px;
-}
-
-.preview-checklist b + b {
-  top: 30px;
-  width: 33px;
-}
 
 .preview-evidence {
   --preview-outer: #02181a;
   --preview-card: #41cfd8;
   --preview-ink: #04201f;
   --preview-media: #02181a;
-}
-
-.preview-editorial {
-  --preview-outer: #cbcadb;
-  --preview-card: #faf9f5;
-  --preview-ink: #141413;
-  --preview-media: #cbcadb;
 }
 
 .preview-split {
@@ -589,7 +489,6 @@ summary:focus-visible {
 }
 
 .preview-evidence i,
-.preview-editorial i,
 .preview-split i {
   right: 6px;
   width: auto;
@@ -614,34 +513,6 @@ summary:focus-visible {
 .preview-evidence b + b {
   top: 28px;
   width: 32px;
-}
-
-.preview-editorial i {
-  top: 8px;
-  left: 6px;
-  height: 22px;
-  opacity: 1;
-  background:
-    radial-gradient(circle at 72% 28%, var(--preview-card) 0 3px, transparent 3.5px),
-    radial-gradient(circle at 22% 70%, var(--preview-ink) 0 1.5px, transparent 2px),
-    linear-gradient(
-      152deg,
-      transparent 0 37%,
-      var(--preview-ink) 38% 40%,
-      transparent 41% 100%
-    ),
-    var(--preview-media);
-}
-
-.preview-editorial b {
-  top: 38px;
-  height: 4px;
-  border-radius: 0;
-}
-
-.preview-editorial b + b {
-  top: 45px;
-  width: 26px;
 }
 
 .preview-split i {
@@ -802,6 +673,40 @@ summary:focus-visible {
   text-wrap: pretty;
 }
 
+/* 逐字段规则默认折叠：同一份内容已经贴在下面每个输入框上，展开只用于一次性通读。 */
+.template-copy-guide-details {
+  margin-top: 8px;
+}
+
+.template-copy-guide-details > summary {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+
+.template-copy-guide-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.template-copy-guide-details > summary::before {
+  display: inline-block;
+  margin-inline-end: 5px;
+  transition: transform 140ms ease;
+  content: "▸";
+}
+
+.template-copy-guide-details[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+@media (hover: hover) {
+  .template-copy-guide-details > summary:hover {
+    color: var(--accent);
+  }
+}
+
 .template-copy-guide-list {
   display: grid;
   gap: 7px;
@@ -901,11 +806,54 @@ summary:focus-visible {
   font-weight: 700;
 }
 
-.field > span small {
-  margin-inline-start: 5px;
+/* 字段名与字数计数占一行，模板写法与示例单独一行；两者都贴着输入框，不用回上面查原稿。 */
+.field > span {
+  display: grid;
+  gap: 3px;
+}
+
+.field > span > b {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: inherit;
+}
+
+.field > span small,
+.field-hint {
+  display: block;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
+  line-height: 1.45;
+}
+
+/* 左上角/右上角与底部文字是并排两列，提示挂在整组下面而不是某一个框上。 */
+.field-hint {
+  margin-top: 6px;
+}
+
+.field-count {
+  flex: 0 0 auto;
+  padding: 1px 7px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(15, 63, 60, 0.06);
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.field-count[data-state="ok"] {
+  color: #1c6b58;
+  background: rgba(28, 107, 88, 0.11);
+}
+
+.field-count[data-state="warn"] {
+  color: #9a5406;
+  background: rgba(197, 122, 16, 0.14);
 }
 
 input[type="text"],
@@ -935,6 +883,25 @@ textarea {
   padding: 11px 13px;
   resize: vertical;
   line-height: 1.5;
+}
+
+/* 文案区一屏放不下，主因是几个固定高度的文本域各自留着空行。
+   交给浏览器原生的 field-sizing 按内容伸缩：用 JS 读 scrollHeight 会在 columns 参数面板里
+   触发整块多栏重排（实测单次 112ms），比省下的那点高度代价大得多。 */
+textarea[data-autosize] {
+  min-height: 46px;
+  max-height: 10em;
+  overflow-y: auto;
+  resize: none;
+  field-sizing: content;
+}
+
+/* 不支持 field-sizing 的浏览器回到固定高度，并把手动拖拽还给用户。 */
+@supports not (field-sizing: content) {
+  textarea[data-autosize] {
+    min-height: 76px;
+    resize: vertical;
+  }
 }
 
 input[type="text"]:focus,
@@ -1167,6 +1134,130 @@ input[type="color"]::-webkit-color-swatch {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 112px;
   gap: 12px;
+}
+
+/* 模块开关：关掉只是不渲染，输入框里的文字仍在，所以这里用勾选而不是删除按钮。 */
+.module-card {
+  display: grid;
+  gap: 11px;
+  margin-top: 14px;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.56);
+}
+
+.module-card-heading strong {
+  display: block;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.module-card-heading small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 550;
+}
+
+.module-list {
+  display: grid;
+  gap: 6px;
+}
+
+.module-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 38px;
+  padding: 5px 9px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: background-color 160ms ease, opacity 160ms ease;
+}
+
+.module-row input {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.module-row span {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+
+.module-row b {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.module-row small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.module-row.is-off {
+  opacity: 0.52;
+}
+
+/* 模块开着但对应字段是空的：提示这一块不会出现，免得以为是 bug。 */
+.module-row.is-empty b::after {
+  margin-inline-start: 6px;
+  color: #9a5406;
+  content: "· 该字段为空";
+  font-size: 10px;
+  font-weight: 600;
+}
+
+@media (hover: hover) {
+  .module-row:hover {
+    background: #fff;
+  }
+}
+
+.module-slot-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 2px;
+}
+
+.module-slot-row > span {
+  color: #344242;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.module-slot-picker {
+  display: flex;
+  gap: 6px;
+}
+
+.module-slot-picker > button {
+  padding: 6px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: #435050;
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.module-slot-picker > button.is-active {
+  color: var(--accent);
+  border-color: rgba(15, 63, 60, 0.42);
+  background: #fff;
+}
+
+.module-slot-picker > button:active {
+  transform: scale(0.96);
 }
 
 .photo-upload-card {
@@ -1668,6 +1759,126 @@ input[type="color"]::-webkit-color-swatch {
 .range-field output {
   color: var(--focus);
   font-variant-numeric: tabular-nums;
+}
+
+/* 轻微收敛属于正常排版，保持中性；只有滑杆基本空转时才用琥珀色提示“再拖也不会更大”。 */
+.range-field output[data-state="fitted"] {
+  color: var(--muted);
+}
+
+.range-field output[data-state="shrunk"] {
+  color: #9a5406;
+}
+
+.range-field-label {
+  align-items: center;
+}
+
+.range-field-label > b {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 8px;
+  font-weight: inherit;
+}
+
+.range-field-label > button {
+  flex: 0 0 auto;
+  padding: 3px 10px;
+  border: 1px solid rgba(15, 63, 60, 0.16);
+  border-radius: 999px;
+  color: #2f5f59;
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.range-field-label > button:active {
+  transform: scale(0.95);
+}
+
+@media (hover: hover) {
+  .range-field-label > button:hover {
+    border-color: rgba(15, 63, 60, 0.34);
+    background: #fff;
+  }
+}
+
+/* 行距、组间距和副标题字号一起给三个落点；单拖一根滑杆很难一次调到位。 */
+.rhythm-preset-block {
+  display: grid;
+  gap: 9px;
+  margin-bottom: 4px;
+}
+
+.rhythm-preset-heading {
+  display: grid;
+  gap: 3px;
+}
+
+.rhythm-preset-heading strong {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.rhythm-preset-heading span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 550;
+}
+
+.rhythm-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.rhythm-preset-grid > button {
+  display: grid;
+  gap: 2px;
+  padding: 9px 8px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.52);
+  text-align: center;
+  transition:
+    transform 120ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+.rhythm-preset-grid > button:active {
+  transform: scale(0.96);
+}
+
+.rhythm-preset-grid strong {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.rhythm-preset-grid span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 550;
+}
+
+@media (hover: hover) {
+  .rhythm-preset-grid > button:hover {
+    border-color: rgba(15, 63, 60, 0.22);
+    background: rgba(255, 255, 255, 0.82);
+  }
+}
+
+.rhythm-preset-grid > button.is-active {
+  border-color: rgba(15, 63, 60, 0.46);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(15, 63, 60, 0.08);
+}
+
+.rhythm-preset-grid > button.is-active strong {
+  color: var(--accent);
 }
 
 .title-line-size-controls {
@@ -2500,13 +2711,7 @@ input[type="range"] {
 
   .note-type-grid {
     grid-template-columns: 1fr;
-  }
-
-  .note-type-button-new {
-    grid-column: auto;
-  }
-
-  .brand-mode-card,
+  }  .brand-mode-card,
   .history-preview-toolbar {
     align-items: stretch;
     flex-direction: column;

@@ -19,121 +19,69 @@ const LEGACY_PHOTO_MODULE_OFFSET = -48;
 const MAX_HISTORY_COVERS = 8;
 const CENTER_SNAP_SCREEN_PX = 12;
 const CENTER_GUIDE_LINGER_MS = 1200;
-const VALID_NOTE_TYPES = ["experience", "tutorial", "product", "deepDive", "hardwareVideo"];
-const PRESET_FEED_ORDER = ["experience", "tutorial", "product", "deepDive", "hardwareVideo"];
-const TEMPLATE_CONTENT_KEYS = Object.freeze([
-  "topLeft",
-  "topRight",
-  "upperText",
-  "titleText",
-  "subtitleText",
-  "footerText",
-]);
+// 只有一种版式，文案不再按模板分抽屉：写过的字永远跟着你，切换呈现方式不会被替换。
+// 模块通过 moduleToggles 开关，关掉时保留文字，随时开回来。
+const MODULE_KEYS = Object.freeze(["corner", "eyebrow", "bigNumber", "subtitle", "footer"]);
+const MODULE_LABELS = Object.freeze({
+  corner: "角标",
+  eyebrow: "上方副标题",
+  bigNumber: "超大编号",
+  subtitle: "下方副标题",
+  footer: "底部文字",
+});
+// 主视觉区（照片或超大编号）与下方副标题各有两个预设槽位，位置之外不做自由拖拽，
+// 卡片骨架仍然固定，主页才保持统一。
+// 主视觉槽位沿用既有的 photoLayout 存储键：editorial = 标题下方，album = 标题上方。
+// 只在读写处做一层语义映射，不为了改名去动二十多处调用和历史状态。
+const HERO_SLOT_BY_LAYOUT = Object.freeze({ editorial: "below", album: "above" });
+const SUBTITLE_SLOTS = Object.freeze(["below", "above"]);
 // 已发布封面由前置数据脚本提供本地快照，不做账号登录、接口同步或后台抓取。
 const PUBLISHED_COVER_SAMPLES = Object.freeze(
   Array.isArray(globalThis.XHS_PUBLISHED_COVER_SAMPLES)
     ? globalThis.XHS_PUBLISHED_COVER_SAMPLES.map((cover) => Object.freeze({ ...cover }))
     : [],
 );
-const PRESET_FEED_CONTENT = Object.freeze({
-  experience: {
-    topLeft: "ASK BETTER",
-    topRight: "#01",
-    upperText: "先把问题说清楚",
-    titleText: "小红书封面\n先写什么？",
-    subtitleText: "目标：缩略图一眼看懂\n限制：只保留一个重点\n已有：正文里的真实证据",
-    footerText: "PROMPT WORKSPACE",
-  },
-  tutorial: {
-    topLeft: "HOW TO",
-    topRight: "#02",
-    upperText: "3 步完成",
-    titleText: "做出统一风格\n小红书封面",
-    subtitleText: "选构图 → 填文案 → 导出 PNG",
-    footerText: "POSTER STUDIO",
-  },
-  product: {
-    topLeft: "TEST LOG",
-    topRight: "#03",
-    upperText: "1080 × 1440 导出检查",
-    titleText: "预览就是\n最终成品",
-    subtitleText: "编辑与导出复用同一套 Canvas",
-    footerText: "EXPORT CHECK",
-  },
-  deepDive: {
-    topLeft: "THINKING NOTES",
-    topRight: "NO.04",
-    upperText: "从结构、反馈与边界谈起",
-    titleText: "为什么好用的工具\n都在隐藏复杂度",
-    subtitleText: "给小团队的产品设计笔记",
-    footerText: "EDITORIAL SERIES",
-  },
-  hardwareVideo: {
-    topLeft: "MODEL RELEASE",
-    topRight: "5.6",
-    upperText: "FRONTIER UPDATE",
-    titleText: "新模型来了\n这次升级了什么",
-    subtitleText: "能力、速度与适用边界",
-    footerText: "RELEASE NOTES",
-  },
+const DEFAULT_CONTENT = Object.freeze({
+  topLeft: "TEST LOG",
+  topRight: "#03",
+  upperText: "1080 × 1440 导出检查",
+  titleText: "预览就是\n最终成品",
+  subtitleText: "编辑与导出复用同一套 Canvas",
+  footerText: "EXPORT CHECK",
 });
-const TEMPLATE_COPY_GUIDES = Object.freeze({
-  experience: {
-    summary: "先呈现读者正在问的问题，再用 Prompt 卡补齐上下文。",
-    bestFor: "问答、观点、需求拆解",
-    roles: [
-      ["角标", "栏目名 + 序号", "ASK BETTER · #01"],
-      ["上方副标题", "提问前提 · 6–10 字", "先把问题说清楚"],
-      ["主标题", "读者问题 · 8–16 字，建议 2 行", "小红书封面 / 先写什么？"],
-      ["下方副标题", "Prompt 输入 · 2–3 行", "目标 / 限制 / 已有"],
-      ["底部文字", "系列名 · 可留空", "PROMPT WORKSPACE"],
-    ],
-  },
-  tutorial: {
-    summary: "用数字先承诺结果，再把步骤压缩成一条可收藏的行动路径。",
-    bestFor: "教程、清单、操作指南",
-    roles: [
-      ["角标", "教程分类 + 期数", "HOW TO · #02"],
-      ["上方副标题", "数量或时间承诺 · 4–10 字", "3 步完成"],
-      ["主标题", "完成后的结果 · 8–18 字，建议 2 行", "做出统一风格 / 小红书封面"],
-      ["下方副标题", "2–3 个步骤 · 用 → 分隔", "选构图 → 填文案 → 导出 PNG"],
-      ["底部文字", "教程系列名 · 可留空", "POSTER STUDIO"],
-    ],
-  },
-  product: {
-    summary: "先给真实测试条件和明确结论，再用一张图片承担证据。",
-    bestFor: "测评、产品体验、结果对比",
-    roles: [
-      ["角标", "测试栏目 + 期数", "TEST LOG · #03"],
-      ["上方副标题", "测试条件或证据口径 · 6–16 字", "1080 × 1440 导出检查"],
-      ["主标题", "结论先行 · 6–16 字，建议 2 行", "预览就是 / 最终成品"],
-      ["下方副标题", "结论依据 · 8–20 字", "编辑与导出复用同一套 Canvas"],
-      ["底部文字", "来源或方法标签 · 可留空", "EXPORT CHECK"],
-    ],
-  },
-  deepDive: {
-    summary: "像文章封面一样先给完整观点，再补充论证方向。",
-    bestFor: "深度分析、趋势判断、长文导读",
-    roles: [
-      ["角标", "专栏名 + 期号", "THINKING NOTES · NO.04"],
-      ["上方副标题", "论据或切入维度 · 8–18 字", "从结构、反馈与边界谈起"],
-      ["主标题", "完整观点 · 14–28 字，建议 2–3 行", "为什么好用的工具 / 都在隐藏复杂度"],
-      ["下方副标题", "文章范围或读者收益", "给小团队的产品设计笔记"],
-      ["底部文字", "文章系列名 · 可留空", "EDITORIAL SERIES"],
-    ],
-  },
-  hardwareVideo: {
-    summary: "让版本号和主视觉先建立发布感，标题只回答这次更新了什么。",
-    bestFor: "模型发布、产品更新、版本解读",
-    roles: [
-      ["角标", "发布类型 + 版本号", "MODEL RELEASE · 5.6"],
-      ["上方副标题", "发布阶段 · 2–3 个短词", "FRONTIER UPDATE"],
-      ["主标题", "更新事件 + 核心问题 · 固定 2 行", "新模型来了 / 这次升级了什么"],
-      ["下方副标题", "3 个升级维度", "能力、速度与适用边界"],
-      ["底部文字", "发布记录名 · 可留空", "RELEASE NOTES"],
-    ],
-  },
+// 文案规则只在这里维护一份：字段提示、写法参考和字数校验都从这里读，
+// 避免同一条规则同时写在 HTML 提示、原稿列表和 syncStyleControls 里三处各说一套。
+// 文案规则只维护一份：字段提示、原稿列表和主标题字数校验都从这里读。
+const COPY_GUIDE = Object.freeze({
+  summary: "先给真实测试条件和明确结论，再用一张图片或超大编号承担证据。",
+  bestFor: "测评、产品体验、结果对比、版本解读",
+  roles: Object.freeze([
+    { field: "corner", label: "角标", rule: "栏目名 + 期数", sample: "TEST LOG · #03" },
+    {
+      field: "upperText",
+      label: "上方副标题",
+      rule: "写测试条件或证据口径 · 6–16 字",
+      sample: "1080 × 1440 导出检查",
+    },
+    {
+      field: "titleText",
+      label: "主标题",
+      rule: "结论先行，先写产品再写结果 · 6–16 字，建议 2 行",
+      sample: "预览就是 / 最终成品",
+      min: 6,
+      max: 16,
+      lines: 2,
+    },
+    {
+      field: "subtitleText",
+      label: "下方副标题",
+      rule: "补充结论依据、限制或适用人群 · 8–20 字",
+      sample: "编辑与导出复用同一套 Canvas",
+    },
+    { field: "footerText", label: "底部文字", rule: "来源或方法标签 · 可留空", sample: "EXPORT CHECK" },
+  ]),
 });
+
 const titleWordSegmenter =
   typeof Intl.Segmenter === "function"
     ? new Intl.Segmenter("zh-CN", { granularity: "word" })
@@ -145,6 +93,7 @@ const FIELD_INK_COLOR = "#141413";
 // accent 与象牙卡对比过低时，卡片轮廓会在白色信息流里消失；低于该比值就补一条墨色细边。
 const CARD_OUTLINE_MIN_RATIO = 1.7;
 
+// 主视觉区的两个槽位：editorial = 标题下方，album = 标题上方。
 const photoLayoutPresets = Object.freeze({
   editorial: {
     photoFrameX: 150,
@@ -158,54 +107,43 @@ const photoLayoutPresets = Object.freeze({
     photoFrameWidth: 816,
     photoFrameHeight: 500,
   },
-  deepDive: {
-    photoFrameX: 106,
-    photoFrameY: 106,
-    photoFrameWidth: 868,
-    photoFrameHeight: 570,
-  },
-  video: {
-    photoFrameX: 132,
-    photoFrameY: 218,
-    photoFrameWidth: 816,
-    photoFrameHeight: 459,
-  },
 });
 
 const defaults = Object.freeze({
-  noteType: "experience",
   styleCustomized: false,
-  // 手动挑过配色后，切换模板不再覆盖颜色；未挑过时跟随模板的默认色系。
+  // 手动挑过配色后不再被默认值覆盖。
   themeCustomized: false,
-  themeId: "cactusField",
+  themeId: "cyanInk",
   contentMode: "text",
-  templateContentDrafts: Object.freeze({}),
-  topLeft: PRESET_FEED_CONTENT.experience.topLeft,
-  topRight: PRESET_FEED_CONTENT.experience.topRight,
-  upperText: PRESET_FEED_CONTENT.experience.upperText,
-  // 默认使用两行，兼顾纯文字与照片优先模式的信息流识别度。
-  titleText: PRESET_FEED_CONTENT.experience.titleText,
-  subtitleText: PRESET_FEED_CONTENT.experience.subtitleText,
-  footerText: PRESET_FEED_CONTENT.experience.footerText,
+  // 模块开关：关掉只是不渲染，文字原样留在输入框里，随时开回来。
+  // 主标题不在其中——它是这张封面的存在理由，不提供关闭。
+  moduleToggles: Object.freeze({
+    corner: true,
+    eyebrow: true,
+    bigNumber: false,
+    subtitle: true,
+    footer: true,
+  }),
+  subtitleSlot: "below",
+  ...DEFAULT_CONTENT,
   footerAlign: "center",
   floatingPreviewSide: "right",
-  backgroundColor: "#BCD1CA",
-  cardColor: FIELD_CARD_COLOR,
-  textColor: FIELD_INK_COLOR,
-  // mediaColor 负责照片占位与视觉块底色，inkColor 负责插画墨线与装饰；
-  // 旧版把两者合并成 visualColor，导致它既要够浅当底色又要够深当线条。
-  mediaColor: "#BCD1CA",
-  inkColor: FIELD_INK_COLOR,
+  backgroundColor: "#02181A",
+  cardColor: "#41CFD8",
+  textColor: "#04201F",
+  // mediaColor 负责照片占位与视觉块底色，inkColor 负责插画墨线与装饰。
+  mediaColor: "#02181A",
+  inkColor: "#04201F",
   fontFamily: "grotesk",
   titleFontFamily: "grotesk",
-  mainSize: 260,
-  mainSizePreference: 260,
+  mainSize: 280,
+  mainSizePreference: 280,
   mainLineHeight: 0.96,
-  // null 表示跟随当前笔记类型的自动强调规则；用户拖动分行滑杆后保存每行比例。
+  // null 表示跟随自动强调规则；用户拖动分行滑杆后保存每行比例。
   titleLineScales: null,
-  upperSize: 38,
-  subtitleSize: 42,
-  groupGap: 74,
+  upperSize: 30,
+  subtitleSize: 40,
+  groupGap: 32,
   verticalOffset: 0,
   // 卡片外轮廓是账号视觉识别的一部分，固定宽高与圆角，不允许逐篇改变。
   cardWidth: CARD_WIDTH_PERCENT,
@@ -219,6 +157,28 @@ const defaults = Object.freeze({
   ...photoLayoutPresets.editorial,
 });
 
+function getHeroSlot() {
+  return HERO_SLOT_BY_LAYOUT[state.photoLayout] || "below";
+}
+
+function isModuleOn(key) {
+  return state.moduleToggles?.[key] !== false;
+}
+
+// 模块「开着」还不够，对应字段有内容才真的渲染。
+function hasModuleContent(key) {
+  if (key === "corner") return Boolean(state.topLeft.trim() || state.topRight.trim());
+  if (key === "eyebrow") return Boolean(state.upperText.trim());
+  if (key === "subtitle") return Boolean(state.subtitleText.trim());
+  if (key === "footer") return Boolean(state.footerText.trim());
+  if (key === "bigNumber") return Boolean(state.topRight.trim());
+  return true;
+}
+
+function isModuleVisible(key) {
+  return isModuleOn(key) && hasModuleContent(key);
+}
+
 const THEME_FAMILIES = Object.freeze({
   ink: {
     label: "深底高对比",
@@ -228,14 +188,16 @@ const THEME_FAMILIES = Object.freeze({
     label: "满幅色场",
     hint: "满幅色场 + 象牙承载卡 + 近黑墨线；适合观点、教程与深度内容",
   },
+  paper: {
+    label: "浅纸彩卡",
+    hint: "浅纸画布 + 彩卡承载文字；卡片在白色信息流里最跳，适合单点主张",
+  },
 });
 
-// 两套基础配色只允许一个色相：背景、卡片、媒体块和墨线都由同一个色系派生，
-// 避免随意拼贴。科技编辑只增加一个固定强调色，不进入可编辑颜色状态。
+// 三套基础色系一律使用深色文字：白字在双列缩略图里冲击力不足。
+// 每套只允许一个色相：背景、卡片、媒体块和墨线都由同一个色系派生。
 const themes = Object.freeze({
-  // ——「深底高对比」：取自账号已发布封面的实际取色（近黑墨绿画布 + 高饱和亮卡 + 近黑字）。
-  // 深底系列的媒体块直接取画布色：视觉上像从亮卡里开了一扇窗回到画布，
-  // 比中间调的深色块干净，也天然保证一套里不出现第二个色相。
+  // ——「深底高对比」：近黑画布 + 高饱和亮卡 + 近黑字，取自账号已发布封面的实际取色。
   cyanInk: {
     label: "青绿墨底",
     family: "ink",
@@ -267,39 +229,56 @@ const themes = Object.freeze({
     label: "电光蓝墨底",
     family: "ink",
     backgroundColor: "#050B16",
-    // 已发布封面用的 #027AFF 配白字只有 3.8:1；压深到 #0061D6 后达到 5.4:1，观感几乎不变。
-    cardColor: "#0061D6",
-    textColor: "#F4F8FF",
+    cardColor: "#4FA8FF",
+    textColor: "#04203E",
     mediaColor: "#050B16",
-    inkColor: "#F4F8FF",
+    inkColor: "#04203E",
   },
   monoInk: {
     label: "纯黑白",
     family: "ink",
     backgroundColor: "#000000",
-    cardColor: "#101010",
-    textColor: "#F7F7F7",
-    mediaColor: "#262626",
-    inkColor: "#F7F7F7",
+    cardColor: "#F5F5F5",
+    textColor: "#0A0A0A",
+    mediaColor: "#000000",
+    inkColor: "#0A0A0A",
+  },
+  violetInk: {
+    label: "紫罗兰墨底",
+    family: "ink",
+    backgroundColor: "#0A0714",
+    cardColor: "#B389FF",
+    textColor: "#160A2E",
+    mediaColor: "#0A0714",
+    inkColor: "#160A2E",
+  },
+  magentaInk: {
+    label: "品红墨底",
+    family: "ink",
+    backgroundColor: "#150710",
+    cardColor: "#FF5C9E",
+    textColor: "#2A0512",
+    mediaColor: "#150710",
+    inkColor: "#2A0512",
   },
 
-  // ——「满幅色场」：anthropic-art 的三层结构，accent 铺满画布、象牙卡承载文字、近黑负责所有墨线。
+  // ——「满幅色场」：accent 铺满画布、象牙卡承载文字、近黑负责所有墨线。
   cactusField: {
     label: "仙人掌绿",
     family: "field",
-    backgroundColor: "#BCD1CA",
+    backgroundColor: "#9DBFB1",
     cardColor: FIELD_CARD_COLOR,
     textColor: FIELD_INK_COLOR,
-    mediaColor: "#BCD1CA",
+    mediaColor: "#9DBFB1",
     inkColor: FIELD_INK_COLOR,
   },
   heatherField: {
     label: "石楠紫",
     family: "field",
-    backgroundColor: "#CBCADB",
+    backgroundColor: "#AFADCE",
     cardColor: FIELD_CARD_COLOR,
     textColor: FIELD_INK_COLOR,
-    mediaColor: "#CBCADB",
+    mediaColor: "#AFADCE",
     inkColor: FIELD_INK_COLOR,
   },
   clayField: {
@@ -340,6 +319,49 @@ const themes = Object.freeze({
     decorator: "editorialTech",
     accentColor: "#E66749",
   },
+
+  // ——「浅纸彩卡」：浅纸铺满画布，彩卡承载全部文字，靠浅底上的彩卡形成硬边。
+  brickPaper: {
+    label: "砖红纸",
+    family: "paper",
+    backgroundColor: "#F5EFE5",
+    cardColor: "#F0714E",
+    textColor: "#2E0D04",
+    mediaColor: "#F5EFE5",
+    inkColor: "#2E0D04",
+  },
+  forestPaper: {
+    label: "墨绿纸",
+    family: "paper",
+    backgroundColor: "#F1F1E9",
+    cardColor: "#7FB79F",
+    textColor: "#0E2A20",
+    mediaColor: "#F1F1E9",
+    inkColor: "#0E2A20",
+  },
+  indigoPaper: {
+    label: "靛蓝纸",
+    family: "paper",
+    backgroundColor: "#EEF0F5",
+    cardColor: "#7FA8E8",
+    textColor: "#0B1B3D",
+    mediaColor: "#EEF0F5",
+    inkColor: "#0B1B3D",
+  },
+  plumPaper: {
+    label: "深梅纸",
+    family: "paper",
+    backgroundColor: "#F4EDEE",
+    cardColor: "#E39BB8",
+    textColor: "#35101F",
+    mediaColor: "#F4EDEE",
+    inkColor: "#35101F",
+  },
+});
+
+const LEGACY_FIELD_THEME_COLORS = Object.freeze({
+  cactusField: "#BCD1CA",
+  heatherField: "#CBCADB",
 });
 
 const LEGACY_SIGNAL_GRID_COLORS = Object.freeze({
@@ -405,6 +427,26 @@ const fontPresets = Object.freeze({
   },
 });
 
+// 行距、组间距和副标题字号总是要一起调；单独拖任何一根滑杆都很难一次到位。
+// 「标准」不写死数值，直接回到默认的推荐排版。
+const rhythmPresets = Object.freeze({
+  tight: {
+    label: "紧凑",
+    mainLineHeight: 0.92,
+    groupGap: 34,
+    upperSizeDelta: -4,
+    subtitleSizeDelta: -4,
+  },
+  standard: { label: "标准" },
+  airy: {
+    label: "宽松",
+    mainLineHeight: 1.08,
+    groupGap: 104,
+    upperSizeDelta: 2,
+    subtitleSizeDelta: 2,
+  },
+});
+
 const localFontDefinitions = Object.freeze({
   handwritten: {
     css: '500 96px "Yozai"',
@@ -413,151 +455,17 @@ const localFontDefinitions = Object.freeze({
   },
 });
 
-// 两套基础色系按模板分工：发布与测评走深底高对比，观点、教程与深度走满幅色场。
-// 用户仍可自由跨系列选色；只有在没有手动挑过配色时才跟随模板的默认值。
-const NOTE_TYPE_DEFAULT_THEMES = Object.freeze({
-  experience: "cactusField",
-  tutorial: "skyField",
-  deepDive: "heatherField",
-  product: "cyanInk",
-  hardwareVideo: "emberInk",
-});
-
-const noteTypePresets = Object.freeze({
-  experience: {
-    label: "对话工作台",
-    description: "问题主导 · Prompt 卡片",
-    fontFamily: "grotesk",
-    titleFontFamily: "grotesk",
-    mainSize: 250,
-    mainLineHeight: 0.96,
-    upperSize: 32,
-    subtitleSize: 36,
-    groupGap: 44,
-    verticalOffset: 0,
-    sidePadding: 64,
-    footerAlign: "center",
-    photoLayout: "editorial",
-  },
-  tutorial: {
-    label: "编号清单",
-    description: "步骤卡片 · 收藏导向",
-    fontFamily: "grotesk",
-    titleFontFamily: "grotesk",
-    mainSize: 270,
-    mainLineHeight: 0.96,
-    upperSize: 32,
-    subtitleSize: 34,
-    groupGap: 40,
-    verticalOffset: 0,
-    sidePadding: 64,
-    footerAlign: "center",
-    photoLayout: "editorial",
-  },
-  product: {
-    label: "证据图文",
-    description: "照片佐证 · 实测结论",
-    fontFamily: "grotesk",
-    titleFontFamily: "grotesk",
-    mainSize: 280,
-    mainLineHeight: 0.96,
-    upperSize: 30,
-    subtitleSize: 34,
-    groupGap: 32,
-    verticalOffset: 0,
-    sidePadding: 64,
-    footerAlign: "center",
-    photoLayout: "editorial",
-  },
-  deepDive: {
-    label: "编辑杂志",
-    description: "暖黑衬线 · 手绘导读",
-    fontFamily: "grotesk",
-    titleFontFamily: "serif",
-    mainSize: 200,
-    mainLineHeight: 1,
-    upperSize: 30,
-    subtitleSize: 34,
-    groupGap: 32,
-    verticalOffset: 0,
-    sidePadding: 64,
-    footerAlign: "left",
-    photoLayout: "album",
-  },
-  hardwareVideo: {
-    label: "模型发布",
-    description: "超大编号 · 图片主导",
-    fontFamily: "grotesk",
-    titleFontFamily: "grotesk",
-    mainSize: 176,
-    mainLineHeight: 0.94,
-    upperSize: 28,
-    subtitleSize: 30,
-    groupGap: 24,
-    verticalOffset: 0,
-    sidePadding: 64,
-    footerAlign: "left",
-    photoLayout: "album",
-  },
-});
-
+// 唯一版式的排版档案；最后一行默认承担缩略图里的记忆点。
 const typographyProfiles = Object.freeze({
-  // 五类模板只改变信息层级，不改变品牌卡片骨架；最后一行默认承担缩略图里的记忆点。
-  experience: {
-    titleWeight: 900,
-    focusScale: 1.08,
-    singleLineScale: 1.08,
-    maxLineSizeRatio: 1.62,
-    titleLineGapEm: -0.04,
-    letterSpacingEm: -0.026,
-    upperAlpha: 0.72,
-    subtitleAlpha: 0.82,
-    maxTitleLines: 4,
-  },
-  tutorial: {
-    titleWeight: 900,
-    focusScale: 1.04,
-    singleLineScale: 1.06,
-    maxLineSizeRatio: 1.5,
-    titleLineGapEm: -0.04,
-    letterSpacingEm: -0.027,
-    upperAlpha: 0.74,
-    subtitleAlpha: 0.84,
-    maxTitleLines: 3,
-  },
-  product: {
-    titleWeight: 900,
-    focusScale: 1.05,
-    singleLineScale: 1.08,
-    maxLineSizeRatio: 1.55,
-    titleLineGapEm: -0.04,
-    letterSpacingEm: -0.029,
-    upperAlpha: 0.72,
-    subtitleAlpha: 0.82,
-    maxTitleLines: 4,
-  },
-  deepDive: {
-    titleWeight: 700,
-    focusScale: 1.04,
-    singleLineScale: 1.04,
-    maxLineSizeRatio: 1.45,
-    titleLineGapEm: 0,
-    letterSpacingEm: -0.014,
-    upperAlpha: 0.68,
-    subtitleAlpha: 0.8,
-    maxTitleLines: 3,
-  },
-  hardwareVideo: {
-    titleWeight: 900,
-    focusScale: 1.04,
-    singleLineScale: 1.04,
-    maxLineSizeRatio: 1.5,
-    titleLineGapEm: -0.02,
-    letterSpacingEm: -0.022,
-    upperAlpha: 0.72,
-    subtitleAlpha: 0.82,
-    maxTitleLines: 3,
-  },
+  titleWeight: 900,
+  focusScale: 1.05,
+  singleLineScale: 1.08,
+  maxLineSizeRatio: 1.55,
+  titleLineGapEm: -0.04,
+  letterSpacingEm: -0.029,
+  upperAlpha: 0.72,
+  subtitleAlpha: 0.92,
+  maxTitleLines: 4,
 });
 
 const canvas = document.querySelector("#posterCanvas");
@@ -599,9 +507,12 @@ const applyTemplateExampleButton = document.querySelector("#applyTemplateExample
 const restoreTemplateContentButton = document.querySelector(
   "#restoreTemplateContentButton",
 );
+const cornerHint = document.querySelector("#cornerHint");
 const upperTextHint = document.querySelector("#upperTextHint");
 const titleTextHint = document.querySelector("#titleTextHint");
 const subtitleTextHint = document.querySelector("#subtitleTextHint");
+const footerTextHint = document.querySelector("#footerTextHint");
+const titleTextCount = document.querySelector("#titleTextCount");
 const titleLineSizeControls = document.querySelector("#titleLineSizeControls");
 const titleLineSizeList = document.querySelector("#titleLineSizeList");
 const resetTitleLineSizesButton = document.querySelector("#resetTitleLineSizesButton");
@@ -630,7 +541,7 @@ let floatingPreviewVisibilityFrame = 0;
 // 参数工作台默认展示完整调节项，避免用户在文案、配色和排版之间反复展开与跳转。
 let customStyleOpen = true;
 let historyCovers = [];
-let templateContentBeforeExample = null;
+let contentBeforeExample = null;
 
 editorialSamplePhoto.addEventListener("load", () => {
   scheduleRender({ persist: false });
@@ -642,12 +553,22 @@ function loadState() {
     const validSaved = saved && typeof saved === "object" ? saved : {};
     const merged = { ...defaults, ...validSaved };
     const hasSavedState = Object.keys(validSaved).length > 0;
-    if (!VALID_NOTE_TYPES.includes(merged.noteType)) {
-      merged.noteType = defaults.noteType;
+    // 旧版按模板存的文案草稿已经取消：只保留当前这一份文案，草稿整体丢弃。
+    delete merged.templateContentDrafts;
+    delete merged.noteType;
+    merged.moduleToggles = {
+      ...defaults.moduleToggles,
+      ...(validSaved.moduleToggles && typeof validSaved.moduleToggles === "object"
+        ? Object.fromEntries(
+            MODULE_KEYS.filter((key) =>
+              Object.prototype.hasOwnProperty.call(validSaved.moduleToggles, key),
+            ).map((key) => [key, validSaved.moduleToggles[key] !== false]),
+          )
+        : {}),
+    };
+    if (!SUBTITLE_SLOTS.includes(merged.subtitleSlot)) {
+      merged.subtitleSlot = defaults.subtitleSlot;
     }
-    merged.templateContentDrafts = sanitizeTemplateContentDrafts(
-      validSaved.templateContentDrafts,
-    );
     // 旧版本把媒体块底色与装饰墨线合并成一个 visualColor，所以它既不能太深也不能太浅。
     // 升级时按角色拆成两个键：媒体块沿用用户原值，墨线跟随文字色，视觉结果不突变。
     if (!Object.prototype.hasOwnProperty.call(validSaved, "mediaColor")) {
@@ -677,6 +598,15 @@ function loadState() {
     ) {
       Object.assign(merged, getThemeColors("signalGrid"));
     }
+    // 只有当保存的色值确实还是这两套配色的旧值时才更新，手动改过的自定义色仍原样保留。
+    const legacyFieldColor = LEGACY_FIELD_THEME_COLORS[merged.themeId];
+    if (
+      legacyFieldColor &&
+      normalizeHex(merged.backgroundColor) === legacyFieldColor &&
+      normalizeHex(merged.mediaColor) === legacyFieldColor
+    ) {
+      Object.assign(merged, getThemeColors(merged.themeId));
+    }
     if (merged.themeId === "custom") merged.themeCustomized = true;
     if (!Object.prototype.hasOwnProperty.call(validSaved, "contentMode")) {
       merged.contentMode = "text";
@@ -684,29 +614,24 @@ function loadState() {
     if (!["text", "photo"].includes(merged.contentMode)) {
       merged.contentMode = defaults.contentMode;
     }
-    // 旧版本没有笔记类型概念：保留用户原有视觉值，并标记为基于经验预设的自定义样式。
-    if (hasSavedState && !Object.prototype.hasOwnProperty.call(validSaved, "noteType")) {
-      merged.noteType = "experience";
-      merged.styleCustomized = true;
-    }
-    // 未做过单篇样式覆盖时，始终跟随类型的推荐字体；用户主动选过的字体继续保留。
+    // 未做过单篇样式覆盖时跟随推荐字体；用户主动选过的字体继续保留。
     if (!merged.styleCustomized) {
-      merged.fontFamily = noteTypePresets[merged.noteType].fontFamily;
-      merged.titleFontFamily = noteTypePresets[merged.noteType].titleFontFamily;
+      merged.fontFamily = defaults.fontFamily;
+      merged.titleFontFamily = defaults.titleFontFamily;
     }
     if (
       !["system", "grotesk", "rounded", "handwritten", "serif"].includes(
         merged.titleFontFamily,
       )
     ) {
-      merged.titleFontFamily = noteTypePresets[merged.noteType].titleFontFamily;
+      merged.titleFontFamily = defaults.titleFontFamily;
     }
     // 兼容旧版状态：首次升级时把用户原有字号作为偏好值，不强行恢复默认字号。
     if (!Object.prototype.hasOwnProperty.call(validSaved, "mainSizePreference")) {
       merged.mainSizePreference = merged.mainSize;
     }
     if (!Object.prototype.hasOwnProperty.call(validSaved, "mainLineHeight")) {
-      merged.mainLineHeight = noteTypePresets[merged.noteType].mainLineHeight;
+      merged.mainLineHeight = defaults.mainLineHeight;
     }
     merged.mainLineHeight = clamp(
       merged.mainLineHeight,
@@ -723,7 +648,7 @@ function loadState() {
         ? Number(validSaved.photoPosition)
         : defaults.photoFocusY;
     }
-    // 旧版“视频框”已经收敛进模型发布的大图主导；只迁移模式名，保留用户保存的照片区域与取景。
+    // 旧版“视频框”已并入「图在标题上方」；只迁移模式名，保留用户保存的照片区域与取景。
     if (merged.photoLayout === "video") {
       merged.photoLayout = "album";
     }
@@ -760,42 +685,10 @@ function persistState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-function getTemplateContentSnapshot(source) {
-  return Object.fromEntries(
-    TEMPLATE_CONTENT_KEYS.map((key) => [key, String(source?.[key] ?? "")]),
-  );
-}
 
-function sanitizeTemplateContentDrafts(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
 
-  return Object.fromEntries(
-    Object.entries(value)
-      .filter(([noteType, draft]) => VALID_NOTE_TYPES.includes(noteType) && draft)
-      .map(([noteType, draft]) => [noteType, getTemplateContentSnapshot(draft)]),
-  );
-}
 
-function isSameTemplateContent(first, second) {
-  return TEMPLATE_CONTENT_KEYS.every(
-    (key) => String(first?.[key] ?? "") === String(second?.[key] ?? ""),
-  );
-}
 
-function applyTemplateContentSnapshot(snapshot) {
-  TEMPLATE_CONTENT_KEYS.forEach((key) => {
-    state[key] = String(snapshot?.[key] ?? "");
-  });
-  // 文案原稿自带换行结构，载入时恢复该模板的自动标题强调，避免沿用上一份文案的逐行比例。
-  state.titleLineScales = null;
-}
-
-function updateCurrentTemplateContentDraft() {
-  state.templateContentDrafts = {
-    ...(state.templateContentDrafts || {}),
-    [state.noteType]: getTemplateContentSnapshot(state),
-  };
-}
 
 function inferThemeIdFromColors(source = state) {
   return Object.entries(themes).find(([, theme]) =>
@@ -805,16 +698,9 @@ function inferThemeIdFromColors(source = state) {
   )?.[0];
 }
 
-function getActiveThemeFamily() {
-  return themes[state.themeId]?.family || null;
-}
 
-function getNoteTypePreset(noteType = state.noteType) {
-  return noteTypePresets[noteType] || noteTypePresets.experience;
-}
-
-function getTypographyProfile(noteType = state.noteType) {
-  const baseProfile = typographyProfiles[noteType] || typographyProfiles.experience;
+function getTypographyProfile() {
+  const baseProfile = typographyProfiles;
   const activeTheme = themes[state.themeId] || themes[inferThemeIdFromColors(state)];
   if (activeTheme?.decorator !== "editorialTech") return baseProfile;
 
@@ -960,92 +846,55 @@ function wrapTitleLinesForEmphasis(
   return wrapped;
 }
 
-function applyNoteTypePreset(noteType, { notify = true } = {}) {
-  if (!VALID_NOTE_TYPES.includes(noteType)) return;
+const CONTENT_KEYS = Object.freeze([
+  "topLeft",
+  "topRight",
+  "upperText",
+  "titleText",
+  "subtitleText",
+  "footerText",
+]);
 
-  const previousNoteType = state.noteType;
-  const currentContent = getTemplateContentSnapshot(state);
-  const existingDraft = state.templateContentDrafts?.[noteType];
-  const templateContentDrafts = {
-    ...(state.templateContentDrafts || {}),
-    [previousNoteType]: currentContent,
-  };
-  const nextContent =
-    noteType === previousNoteType
-      ? currentContent
-      : existingDraft || PRESET_FEED_CONTENT[noteType];
-  const preset = getNoteTypePreset(noteType);
-  const framePreset = photoLayoutPresets[preset.photoLayout];
-  const { label, description, ...styleValues } = preset;
-  // 两套基础色系按模板分工，但用户手动挑过配色后就以用户的选择为准，不再被模板覆盖。
-  const themeColors = state.themeCustomized
-    ? null
-    : getThemeColors(NOTE_TYPE_DEFAULT_THEMES[noteType]);
-  state = {
-    ...state,
-    ...styleValues,
-    ...framePreset,
-    ...nextContent,
-    ...(themeColors || {}),
-    ...(themeColors ? { themeId: NOTE_TYPE_DEFAULT_THEMES[noteType] } : {}),
-    noteType,
-    templateContentDrafts,
-    styleCustomized: false,
-    mainSizePreference: preset.mainSize,
-    titleLineScales: null,
-    photoFocusX: 50,
-    photoFocusY: 50,
-    photoEditMode: "frame",
-  };
-  templateContentBeforeExample = null;
-  customStyleOpen = true;
-  syncControls();
-  scheduleRender();
-  if (notify) {
-    const contentStatus =
-      noteType === previousNoteType
-        ? "文案保持不变"
-        : existingDraft
-          ? "已恢复这套模板的文案草稿"
-          : "已载入模板原稿";
-    const themeStatus = themeColors
-      ? `；配色跟随为「${themes[NOTE_TYPE_DEFAULT_THEMES[noteType]].label}」`
-      : "";
-    showToast(`已切换到「${label}」；${contentStatus}${themeStatus}`);
-  }
+function getContentSnapshot(source = state) {
+  return Object.fromEntries(CONTENT_KEYS.map((key) => [key, String(source?.[key] ?? "")]));
 }
 
-function loadCurrentTemplateExample() {
-  const example = PRESET_FEED_CONTENT[state.noteType];
-  if (!example || isSameTemplateContent(state, example)) {
-    showToast("当前已经是这套模板的最佳示例");
+function isSameContent(source, other) {
+  return CONTENT_KEYS.every(
+    (key) => String(source?.[key] ?? "") === String(other?.[key] ?? ""),
+  );
+}
+
+function applyContentSnapshot(snapshot) {
+  CONTENT_KEYS.forEach((key) => {
+    state[key] = String(snapshot?.[key] ?? "");
+  });
+  // 换了一整份文案，行数与断句都变了，回到自动强调而不是沿用上一份的逐行比例。
+  state.titleLineScales = null;
+}
+
+// 示例文案只是一次性替换，随时可以撤回；不再有“每个模板一份草稿”这种会吞掉文字的机制。
+function loadContentExample() {
+  if (isSameContent(state, DEFAULT_CONTENT)) {
+    showToast("当前已经是示例文案");
     return;
   }
 
-  templateContentBeforeExample = {
-    noteType: state.noteType,
-    content: getTemplateContentSnapshot(state),
-  };
-  applyTemplateContentSnapshot(example);
-  updateCurrentTemplateContentDraft();
+  contentBeforeExample = getContentSnapshot(state);
+  applyContentSnapshot(DEFAULT_CONTENT);
   syncControls();
   scheduleRender();
-  showToast("已载入最佳示例；可以按字段逐项替换，原文仍可恢复");
+  showToast("已载入示例文案；可以按字段逐项替换，原文仍可恢复");
 }
 
-function restoreTemplateContentBeforeExample() {
-  if (
-    !templateContentBeforeExample ||
-    templateContentBeforeExample.noteType !== state.noteType
-  ) {
-    templateContentBeforeExample = null;
+function restoreContentBeforeExample() {
+  if (!contentBeforeExample) {
     syncStyleControls();
     return;
   }
 
-  applyTemplateContentSnapshot(templateContentBeforeExample.content);
-  updateCurrentTemplateContentDraft();
-  templateContentBeforeExample = null;
+  applyContentSnapshot(contentBeforeExample);
+  contentBeforeExample = null;
   syncControls();
   scheduleRender();
   showToast("已恢复载入示例前的文案");
@@ -1135,6 +984,8 @@ function ensureFontReady(family = state.fontFamily) {
     .then((faces) => {
       if (!faces.length) throw new Error("font unavailable");
       if (state.fontFamily === family || state.titleFontFamily === family) {
+        // 字体换了以后文字宽度变了，但状态签名没变，必须显式作废上限缓存。
+        invalidateMainSizeLimit();
         syncMainSizeLimit();
         updateRangeOutputs();
         scheduleRender({ persist: false });
@@ -1178,9 +1029,88 @@ function getCurrentRenderedTitleLines() {
   ).slice(0, MAX_CUSTOM_TITLE_LINES);
 }
 
+// 滑杆右半段长期是空行程：目标字号早被行宽和可用高度压住，再拖也不会更大。
+// 这里逐格试出真正能生效的最大值，让滑杆的右端就是画布上的上限。
+let mainSizeLimitCache = { signature: null, limit: MAX_MAIN_SIZE };
+
+function getMainSizeLimitSignature() {
+  return [
+    JSON.stringify(state.moduleToggles),
+    state.subtitleSlot,
+    state.titleText,
+    state.upperText,
+    state.subtitleText,
+    state.titleFontFamily,
+    state.fontFamily,
+    state.sidePadding,
+    state.mainLineHeight,
+    state.groupGap,
+    state.upperSize,
+    state.subtitleSize,
+    state.photoLayout,
+    state.contentMode,
+    state.photoFrameX,
+    state.photoFrameY,
+    state.photoFrameWidth,
+    state.photoFrameHeight,
+    Array.isArray(state.titleLineScales) ? state.titleLineScales.join(",") : "auto",
+    uploadedPhoto ? "photo" : "none",
+  ].join("|");
+}
+
+function invalidateMainSizeLimit() {
+  mainSizeLimitCache = { signature: null, limit: mainSizeLimitCache.limit };
+}
+
+// 二分：某个字号画出来还等于它自己，就说明没被压缩，可以再往上试。
+let measuringMainSizeLimit = false;
+
+function searchMaxEffectiveMainSize() {
+  const restore = state.mainSize;
+  let low = 0;
+  let high = Math.floor((MAX_MAIN_SIZE - MIN_MAIN_SIZE) / MAIN_SIZE_STEP);
+  let best = null;
+
+  while (low <= high) {
+    const middle = Math.floor((low + high) / 2);
+    const size = MIN_MAIN_SIZE + middle * MAIN_SIZE_STEP;
+    state.mainSize = size;
+    renderPoster();
+    if (renderedTitleSize !== null && renderedTitleSize >= size - 1) {
+      best = size;
+      low = middle + 1;
+    } else {
+      high = middle - 1;
+    }
+  }
+
+  // 试探过程会把中间字号画到可见画布上；恢复原值，由调用方在退出量测状态后补一帧。
+  state.mainSize = restore;
+  return best ?? MIN_MAIN_SIZE;
+}
+
 function calculateMainSizeLimit() {
-  // 实际渲染会自动拆行并按可用高度收敛，这里保留完整字号范围供标题优先布局使用。
-  return MAX_MAIN_SIZE;
+  // 没有标题时不存在收敛问题，保留完整范围。
+  if (!splitLines(state.titleText).length) return MAX_MAIN_SIZE;
+
+  // 试探过程本身会渲染；万一哪条渲染路径又回头问上限，直接返回上一次的结果。
+  if (measuringMainSizeLimit) return mainSizeLimitCache.limit;
+  if (mainSizeLimitCache.signature === getMainSizeLimitSignature()) {
+    return mainSizeLimitCache.limit;
+  }
+
+  measuringMainSizeLimit = true;
+  let limit;
+  try {
+    limit = searchMaxEffectiveMainSize();
+  } finally {
+    measuringMainSizeLimit = false;
+  }
+  // 退出量测状态后补画一帧，把画布和缩略图从试探中途的字号拉回真实状态。
+  renderPoster();
+  // 渲染会把照片区域夹回边界内，签名要按试探结束后的状态记录，否则下次必然落空。
+  mainSizeLimitCache = { signature: getMainSizeLimitSignature(), limit };
+  return limit;
 }
 
 function syncMainSizeLimit() {
@@ -1285,10 +1215,9 @@ function clamp(value, minimum, maximum) {
 }
 
 function getPhotoFrameBounds(cardX, cardY, cardWidth, cardHeight, layoutScale) {
-  const isDeepDive = state.photoLayout === "deepDive";
   return {
     minX: cardX + 20 * layoutScale,
-    minY: cardY + (isDeepDive ? 20 : 132) * layoutScale,
+    minY: cardY + 132 * layoutScale,
     maxX: cardX + cardWidth - 20 * layoutScale,
     maxY: cardY + cardHeight - 70 * layoutScale,
   };
@@ -1329,11 +1258,7 @@ function getPhotoWindowMetrics(cardX, cardY, cardWidth, cardHeight, padding, lay
   return {
     ...frame,
     radius: Math.min(
-      (state.photoLayout === "album"
-        ? 40
-        : ["deepDive", "video"].includes(state.photoLayout)
-          ? 32
-          : 28) *
+      (state.photoLayout === "album" ? 40 : 28) *
         layoutScale,
       frame.height / 2,
     ),
@@ -1411,44 +1336,6 @@ function drawPhotoWindow(metrics, image = uploadedPhoto) {
     context.stroke();
     context.restore();
   }
-}
-
-function drawSamplePhotoFallback(metrics) {
-  context.save();
-  roundedRectPath(
-    context,
-    metrics.x,
-    metrics.y,
-    metrics.width,
-    metrics.height,
-    metrics.radius,
-  );
-  context.clip();
-  context.fillStyle = normalizeHex(state.mediaColor) || defaults.mediaColor;
-  context.fillRect(metrics.x, metrics.y, metrics.width, metrics.height);
-
-  if (editorialSamplePhoto.complete && editorialSamplePhoto.naturalWidth > 0) {
-    const crop = calculateCoverCrop(
-      editorialSamplePhoto.naturalWidth,
-      editorialSamplePhoto.naturalHeight,
-      metrics.width,
-      metrics.height,
-      50,
-      50,
-    );
-    context.drawImage(
-      editorialSamplePhoto,
-      crop.sourceX,
-      crop.sourceY,
-      crop.sourceWidth,
-      crop.sourceHeight,
-      metrics.x,
-      metrics.y,
-      metrics.width,
-      metrics.height,
-    );
-  }
-  context.restore();
 }
 
 function fitScale(
@@ -1545,8 +1432,21 @@ function drawTextWithSpacing(text, x, baseline, spacing) {
   });
 }
 
+// 主标题字号会先按行宽收敛、再按可用高度整体压缩，滑杆上的“目标字号”常常不是画布上的字号。
+// 这里在真正绘制时记录最终字号，让滑杆能显示实际值，而不是让用户拖着猜。
+let renderedTitleSize = null;
+let renderedTitleLineSizes = [];
+
+function recordRenderedTitleSize(block) {
+  // 只有主标题用 perLine 逐行适配；副标题、步骤轨道等不参与。
+  if (block.options.fitMode !== "perLine" || !block.sizes.length) return;
+  renderedTitleLineSizes = block.sizes.map((size) => Math.round(size));
+  renderedTitleSize = Math.max(...renderedTitleLineSizes);
+}
+
 function drawBlock(block, x, top) {
   if (!block.lines.length) return;
+  recordRenderedTitleSize(block);
 
   context.save();
   context.fillStyle = state.textColor;
@@ -1568,31 +1468,6 @@ function drawBlock(block, x, top) {
       lineTop + size * 0.82,
       size * (block.options.letterSpacingEm || 0),
     );
-    lineTop += size + (block.lineGaps[index] ?? block.lineGap);
-  });
-  context.restore();
-}
-
-function drawCenteredBlock(block, centerX, top) {
-  if (!block.lines.length) return;
-
-  context.save();
-  context.fillStyle = state.textColor;
-  context.globalAlpha = block.options.alpha ?? 1;
-  context.textAlign = "left";
-  context.textBaseline = "alphabetic";
-
-  let lineTop = top;
-  block.lines.forEach((line, index) => {
-    const size = block.sizes[index];
-    const spacing = size * (block.options.letterSpacingEm || 0);
-    context.font = fontString(
-      block.options.weight,
-      size,
-      block.options.family || state.fontFamily,
-    );
-    const lineWidth = measureSpacedText(line, spacing);
-    drawTextWithSpacing(line, centerX - lineWidth / 2, lineTop + size * 0.82, spacing);
     lineTop += size + (block.lineGaps[index] ?? block.lineGap);
   });
   context.restore();
@@ -1657,17 +1532,6 @@ function drawCornerLabel(text, x, baseline, align, maxWidth, layoutScale) {
   context.restore();
 }
 
-function getMediaFirstTextRegion(cardY, cardHeight, photoWindow, layoutScale) {
-  const bottom = cardY + cardHeight - 84 * layoutScale;
-  const minimumHeight = 350 * layoutScale;
-  const desiredTop = photoWindow.y + photoWindow.height + 42 * layoutScale;
-  const top = Math.max(
-    cardY + 160 * layoutScale,
-    Math.min(desiredTop, bottom - minimumHeight),
-  );
-  return { top, bottom };
-}
-
 function scaleTextBlock(block, scale) {
   if (scale >= 1 || !block.height) return block;
   return {
@@ -1687,9 +1551,12 @@ function getOpticalStackTop(regionTop, regionBottom, stackHeight, bias = 0.48) {
 }
 
 // 大标题受卡片宽度限制，往往无法再放大，内容因此明显短于卡片高度。
-// 这时把富余空间平均摊到每一条缝隙上（含首块之前与末块之后）：
-// 缝隙越多、每条越小，就不会出现某一处 20% 以上的整块空白。
+// 这时把富余空间摊到每一条缝隙上（含首块之前与末块之后），避免某一处出现整块空白。
+// 但完全平均会让眉题、标题、副标题之间和上下外边距一样松，整组读起来是散的；
+// INNER_SLACK_WEIGHT 让内部缝隙只拿到外侧缝隙的一部分，文字收成一组，留白留在上下。
 // minGaps[i] 是第 i 块之后必须保留的最小间隙，空间不足时只剩这些最小值。
+const INNER_SLACK_WEIGHT = 0.38;
+
 function distributeVerticalSlack(regionTop, regionBottom, heights, minGaps = []) {
   const totalHeight = heights.reduce((sum, height) => sum + height, 0);
   const totalMinGap = minGaps.reduce((sum, gap) => sum + gap, 0);
@@ -1698,12 +1565,17 @@ function distributeVerticalSlack(regionTop, regionBottom, heights, minGaps = [])
     0,
     regionBottom - regionTop - totalHeight - totalMinGap,
   );
-  const share = slack / seamCount;
+  // 首尾两条缝隙权重为 1，中间的都按 INNER_SLACK_WEIGHT 缩小。
+  const weights = Array.from({ length: seamCount }, (_, index) =>
+    index === 0 || index === seamCount - 1 ? 1 : INNER_SLACK_WEIGHT,
+  );
+  const weightTotal = weights.reduce((sum, weight) => sum + weight, 0);
+  const unit = weightTotal > 0 ? slack / weightTotal : 0;
   const tops = [];
-  let cursor = regionTop + share;
+  let cursor = regionTop + unit * weights[0];
   heights.forEach((height, index) => {
     tops.push(cursor);
-    cursor += height + (minGaps[index] ?? 0) + share;
+    cursor += height + (minGaps[index] ?? 0) + unit * weights[index + 1];
   });
   return tops;
 }
@@ -1774,265 +1646,36 @@ function drawEyebrowChip(text, x, top, maxWidth, layoutScale, scale, filled) {
   return height;
 }
 
-function parseTutorialSteps(value) {
-  const raw = String(value ?? "").trim();
-  if (!raw) return [];
-  const parts = raw
-    .split(/\s*(?:→|->|›|·|\||｜)\s*/u)
-    .map((part) =>
-      part
-        .replace(/^(?:0?\d{1,2})\s*[.、:：)\-]?\s*/u, "")
-        .trim(),
-    )
-    .filter(Boolean);
-  return parts.length > 1 ? parts.slice(0, 3) : [raw];
+// 唯一版式的内容渲染：模块开关决定画不画，槽位决定画在标题上方还是下方。
+// 卡片骨架、角标行和页脚位置固定，模块只在这套骨架内部增减。
+function photoActive() {
+  return state.contentMode === "photo";
 }
 
-function drawCenteredFittedText(text, centerX, baseline, maxWidth, fontSize, weight) {
-  let size = fontSize;
-  context.font = fontString(weight, size, state.fontFamily);
-  const measured = context.measureText(text).width;
-  if (measured > maxWidth) size *= maxWidth / measured;
-  context.font = fontString(weight, size, state.fontFamily);
-  context.textAlign = "center";
-  context.textBaseline = "alphabetic";
-  context.fillText(text, centerX, baseline);
-}
-
-function getTutorialRailHeight(steps, layoutScale, scale) {
-  return (steps.length > 1 ? 142 : 82) * layoutScale * scale;
-}
-
-function drawTutorialStepRail(steps, x, top, width, layoutScale, scale) {
-  if (!steps.length) return;
-  const height = getTutorialRailHeight(steps, layoutScale, scale);
-  context.save();
-  context.fillStyle = state.textColor;
-  context.strokeStyle = state.textColor;
-
-  if (steps.length === 1) {
-    roundedRectPath(context, x, top, width, height, height / 2);
-    context.globalAlpha = 0.12;
-    context.fill();
-    context.globalAlpha = 1;
-    const badgeRadius = 25 * layoutScale * scale;
-    const badgeX = x + 42 * layoutScale * scale;
-    const centerY = top + height / 2;
-    context.beginPath();
-    context.arc(badgeX, centerY, badgeRadius, 0, Math.PI * 2);
-    context.fill();
-    context.fillStyle = state.cardColor;
-    context.font = fontString(900, 19 * layoutScale * scale, state.fontFamily);
-    context.textAlign = "center";
-    context.textBaseline = "middle";
-    context.fillText("01", badgeX, centerY);
-    context.fillStyle = state.textColor;
-    context.textAlign = "left";
-    context.font = fontString(800, 28 * layoutScale * scale, state.fontFamily);
-    context.fillText(
-      steps[0],
-      badgeX + 43 * layoutScale * scale,
-      centerY + 1 * layoutScale * scale,
-    );
-    context.restore();
-    return;
-  }
-
-  const cellWidth = width / steps.length;
-  const circleRadius = 34 * layoutScale * scale;
-  const circleY = top + circleRadius;
-  const firstCenterX = x + cellWidth / 2;
-  const lastCenterX = x + width - cellWidth / 2;
-  context.globalAlpha = 0.34;
-  context.lineWidth = 3 * layoutScale * scale;
-  context.beginPath();
-  context.moveTo(firstCenterX + circleRadius, circleY);
-  context.lineTo(lastCenterX - circleRadius, circleY);
-  context.stroke();
-  context.globalAlpha = 1;
-
-  steps.forEach((step, index) => {
-    const centerX = x + cellWidth * (index + 0.5);
-    context.fillStyle = state.textColor;
-    context.beginPath();
-    context.arc(centerX, circleY, circleRadius, 0, Math.PI * 2);
-    context.fill();
-    context.fillStyle = state.cardColor;
-    context.font = fontString(900, 25 * layoutScale * scale, state.fontFamily);
-    context.textAlign = "center";
-    context.textBaseline = "middle";
-    context.fillText(String(index + 1).padStart(2, "0"), centerX, circleY);
-    context.fillStyle = state.textColor;
-    drawCenteredFittedText(
-      step,
-      centerX,
-      top + 121 * layoutScale * scale,
-      cellWidth - 22 * layoutScale * scale,
-      30 * layoutScale * scale,
-      850,
-    );
-  });
-  context.restore();
-}
-
-function renderTutorialContent({
+function renderCoverContent({
   cardX,
   cardY,
   cardWidth,
   cardHeight,
   padding,
-  photoWindow,
+  heroWindow,
   layoutScale,
 }) {
   const contentX = cardX + padding;
   const maxContentWidth = cardWidth - padding * 2;
-  drawTemplateCornerLabels({
-    cardX,
-    cardY,
-    cardWidth,
-    padding,
-    maxContentWidth,
-    layoutScale,
-  });
 
-  const typography = getTypographyProfile("tutorial");
-  const mainSize = Number(state.mainSize) * layoutScale;
-  const titleLines = wrapTitleLinesForEmphasis(
-    splitLines(state.titleText),
-    mainSize,
-    maxContentWidth,
-    typography,
-  );
-  let mainBlock = createBlock(
-    titleLines,
-    getTitleDesiredSizes(titleLines, mainSize, typography),
-    {
-      weight: typography.titleWeight,
-      family: state.titleFontFamily,
-      maxWidth: maxContentWidth,
-      minScale: 0.46,
-      fitMode: "perLine",
-      letterSpacingEm: typography.letterSpacingEm,
-      maxLineSizeRatio: typography.maxLineSizeRatio,
-      lineHeight: Number(state.mainLineHeight),
-    },
-  );
-  const steps = parseTutorialSteps(state.subtitleText);
-  const hasEyebrow = Boolean(state.upperText.trim());
-  let scale = 1;
-  let eyebrowHeight = hasEyebrow ? 58 * layoutScale : 0;
-  let railHeight = getTutorialRailHeight(steps, layoutScale, scale);
-  let firstGap = (hasEyebrow ? 28 : 0) * layoutScale;
-  let secondGap = (steps.length ? 34 : 0) * layoutScale;
-  let stackHeight =
-    eyebrowHeight + mainBlock.height + railHeight + firstGap + secondGap;
-  const isMediaFirst = state.photoLayout === "album" && photoWindow;
-  const regionTop = isMediaFirst
-    ? photoWindow.y + photoWindow.height + 36 * layoutScale
-    : cardY + 158 * layoutScale;
-  const regionBottom = isMediaFirst
-    ? cardY + cardHeight - 88 * layoutScale
-    : photoWindow
-      ? photoWindow.y - 38 * layoutScale
-      : cardY + cardHeight - 88 * layoutScale;
-  const availableHeight = Math.max(1, regionBottom - regionTop);
-
-  if (stackHeight > availableHeight) {
-    scale = Math.max(0.64, availableHeight / stackHeight);
-    mainBlock = scaleTextBlock(mainBlock, scale);
-    eyebrowHeight *= scale;
-    railHeight = getTutorialRailHeight(steps, layoutScale, scale);
-    firstGap *= scale;
-    secondGap *= scale;
-    stackHeight =
-      eyebrowHeight + mainBlock.height + railHeight + firstGap + secondGap;
-  }
-
-  // 纯文字模式下承诺、标题和步骤条各自独立定位，富余空间摊给四条缝隙，
-  // 避免顶部角标被一整段空白孤立、或步骤条与标题挤在一起。
-  if (!photoWindow) {
-    const offset = Number(state.verticalOffset) * layoutScale;
-    const blocks = [];
-    if (hasEyebrow) blocks.push({ kind: "eyebrow", height: eyebrowHeight, gap: firstGap });
-    blocks.push({ kind: "title", height: mainBlock.height, gap: secondGap });
-    if (railHeight) blocks.push({ kind: "rail", height: railHeight, gap: 0 });
-    const tops = distributeVerticalSlack(
-      regionTop + offset,
-      regionBottom,
-      blocks.map((block) => block.height),
-      blocks.map((block) => block.gap),
-    );
-    blocks.forEach((block, index) => {
-      const top = tops[index];
-      if (block.kind === "eyebrow") {
-        drawEyebrowChip(
-          state.upperText,
-          contentX,
-          top,
-          maxContentWidth,
-          layoutScale,
-          scale,
-          false,
-        );
-      } else if (block.kind === "title") {
-        drawBlock(mainBlock, contentX, top);
-      } else {
-        drawTutorialStepRail(steps, contentX, top, maxContentWidth, layoutScale, scale);
-      }
+  if (isModuleVisible("corner")) {
+    drawTemplateCornerLabels({
+      cardX,
+      cardY,
+      cardWidth,
+      padding,
+      maxContentWidth,
+      layoutScale,
     });
-  } else {
-    let cursorY =
-      getOpticalStackTop(regionTop, regionBottom, stackHeight, 0.5) +
-      Number(state.verticalOffset) * layoutScale;
-    cursorY = clamp(cursorY, regionTop, Math.max(regionTop, regionBottom - stackHeight));
-    if (hasEyebrow) {
-      drawEyebrowChip(
-        state.upperText,
-        contentX,
-        cursorY,
-        maxContentWidth,
-        layoutScale,
-        scale,
-        false,
-      );
-      cursorY += eyebrowHeight + firstGap;
-    }
-    drawBlock(mainBlock, contentX, cursorY);
-    cursorY += mainBlock.height + secondGap;
-    drawTutorialStepRail(steps, contentX, cursorY, maxContentWidth, layoutScale, scale);
   }
 
-  drawSpacedText(
-    state.footerText.trim(),
-    contentX,
-    cardY + cardHeight - 37 * layoutScale,
-    maxContentWidth,
-    state.footerAlign,
-    layoutScale,
-  );
-}
-
-function renderProductContent({
-  cardX,
-  cardY,
-  cardWidth,
-  cardHeight,
-  padding,
-  photoWindow,
-  layoutScale,
-}) {
-  const contentX = cardX + padding;
-  const maxContentWidth = cardWidth - padding * 2;
-  drawTemplateCornerLabels({
-    cardX,
-    cardY,
-    cardWidth,
-    padding,
-    maxContentWidth,
-    layoutScale,
-  });
-
-  const typography = getTypographyProfile("product");
+  const typography = getTypographyProfile();
   const mainSize = Number(state.mainSize) * layoutScale;
   const subtitleSize = Number(state.subtitleSize) * layoutScale;
   const titleLines = wrapTitleLinesForEmphasis(
@@ -2055,7 +1698,9 @@ function renderProductContent({
       lineHeight: Number(state.mainLineHeight),
     },
   );
-  const subtitleLines = splitLines(state.subtitleText);
+
+  const showSubtitle = isModuleVisible("subtitle");
+  const subtitleLines = showSubtitle ? splitLines(state.subtitleText) : [];
   let subtitleBlock = createBlock(
     subtitleLines,
     subtitleLines.map(() => subtitleSize),
@@ -2068,49 +1713,55 @@ function renderProductContent({
       alpha: typography.subtitleAlpha,
     },
   );
-  const hasEyebrow = Boolean(state.upperText.trim());
+
+  const hasEyebrow = isModuleVisible("eyebrow");
   let scale = 1;
   let eyebrowHeight = hasEyebrow ? 58 * layoutScale : 0;
-  let firstGap = (hasEyebrow ? 28 : 0) * layoutScale;
-  let secondGap = (subtitleBlock.height ? 26 : 0) * layoutScale;
-  let stackHeight =
-    eyebrowHeight + mainBlock.height + subtitleBlock.height + firstGap + secondGap;
-  const isMediaFirst = state.photoLayout === "album" && photoWindow;
-  const regionTop = isMediaFirst
-    ? photoWindow.y + photoWindow.height + 36 * layoutScale
-    : cardY + 158 * layoutScale;
-  const regionBottom = isMediaFirst
-    ? cardY + cardHeight - 88 * layoutScale
-    : photoWindow
-      ? photoWindow.y - 34 * layoutScale
-      : cardY + cardHeight - 88 * layoutScale;
+
+  // 槽位决定顺序：副标题可以落在标题下方（默认）或标题上方。
+  const subtitleAbove = state.subtitleSlot === "above" && subtitleBlock.height > 0;
+  const order = [];
+  if (hasEyebrow) order.push("eyebrow");
+  if (subtitleAbove) order.push("subtitle");
+  order.push("title");
+  if (subtitleBlock.height > 0 && !subtitleAbove) order.push("subtitle");
+
+  const gapAfter = { eyebrow: 28 * layoutScale, subtitle: 26 * layoutScale, title: 26 * layoutScale };
+  const heightOf = (kind) =>
+    kind === "eyebrow" ? eyebrowHeight : kind === "title" ? mainBlock.height : subtitleBlock.height;
+  const gapsFor = () => order.slice(0, -1).map((kind) => gapAfter[kind] * scale);
+  const stackOf = () =>
+    order.reduce((sum, kind) => sum + heightOf(kind), 0) +
+    gapsFor().reduce((sum, gap) => sum + gap, 0);
+
+  let stackHeight = stackOf();
+  // 槽位只对照片有意义；纯编号主视觉固定画在卡片上方，正文一定排在它下面。
+  const heroFirst = Boolean(heroWindow) && (!photoActive() || getHeroSlot() === "above");
+  const regionTop = heroFirst
+    ? heroWindow.y + heroWindow.height + 36 * layoutScale
+    : cardY + (isModuleVisible("corner") ? 158 : 118) * layoutScale;
+  const regionBottom =
+    heroWindow && !heroFirst
+      ? heroWindow.y - 34 * layoutScale
+      : cardY + cardHeight - (isModuleVisible("footer") ? 88 : 56) * layoutScale;
   const availableHeight = Math.max(1, regionBottom - regionTop);
 
   if (stackHeight > availableHeight) {
-    // 产品封面先压缩眉题、解释文字和间距；标题只有在副信息已经让位后才缩小。
-    const supportingHeight = eyebrowHeight + subtitleBlock.height + firstGap + secondGap;
+    // 先压缩眉题、解释文字和间距；标题只有在副信息已经让位后才缩小。
+    const supportingHeight = eyebrowHeight + subtitleBlock.height;
     const overflow = stackHeight - availableHeight;
-    scale = supportingHeight > 0
-      ? Math.max(0.76, 1 - overflow / supportingHeight)
-      : 1;
+    scale = supportingHeight > 0 ? Math.max(0.76, 1 - overflow / supportingHeight) : 1;
     subtitleBlock = scaleTextBlock(subtitleBlock, scale);
     eyebrowHeight *= scale;
-    firstGap *= scale;
-    secondGap *= scale;
-    stackHeight =
-      eyebrowHeight + mainBlock.height + subtitleBlock.height + firstGap + secondGap;
+    stackHeight = stackOf();
 
     if (stackHeight > availableHeight) {
-      const availableTitleHeight = Math.max(
-        1,
-        availableHeight - eyebrowHeight - subtitleBlock.height - firstGap - secondGap,
-      );
+      const others = stackHeight - mainBlock.height;
       mainBlock = scaleTextBlock(
         mainBlock,
-        Math.max(0.62, availableTitleHeight / mainBlock.height),
+        Math.max(0.62, Math.max(1, availableHeight - others) / mainBlock.height),
       );
-      stackHeight =
-        eyebrowHeight + mainBlock.height + subtitleBlock.height + firstGap + secondGap;
+      stackHeight = stackOf();
     }
 
     if (stackHeight > availableHeight) {
@@ -2118,249 +1769,56 @@ function renderProductContent({
       mainBlock = scaleTextBlock(mainBlock, finalScale);
       subtitleBlock = scaleTextBlock(subtitleBlock, finalScale);
       eyebrowHeight *= finalScale;
-      firstGap *= finalScale;
-      secondGap *= finalScale;
       scale *= finalScale;
-      stackHeight = availableHeight;
+      stackHeight = stackOf();
     }
   }
 
-  // 纯文字模式下测评条件、结论标题和结论依据各自独立定位，富余空间摊给四条缝隙；
-  // 有照片时照片已经占住下半区，仍按原来的整组视觉重心摆放。
-  if (!photoWindow) {
-    const offset = Number(state.verticalOffset) * layoutScale;
-    const blocks = [];
-    if (hasEyebrow) blocks.push({ kind: "eyebrow", height: eyebrowHeight, gap: firstGap });
-    blocks.push({ kind: "title", height: mainBlock.height, gap: secondGap });
-    if (subtitleBlock.height) {
-      blocks.push({ kind: "subtitle", height: subtitleBlock.height, gap: 0 });
+  const drawKind = (kind, top) => {
+    if (kind === "eyebrow") {
+      drawEyebrowChip(state.upperText, contentX, top, maxContentWidth, layoutScale, scale, true);
+    } else if (kind === "title") {
+      drawBlock(mainBlock, contentX, top);
+    } else {
+      drawBlock(subtitleBlock, contentX, top);
     }
+  };
+
+  // 没有主视觉时各块独立定位，富余空间按加权摊到每条缝隙；
+  // 有主视觉时它已经占住一半，整组按视觉重心摆放。
+  if (!heroWindow) {
     const tops = distributeVerticalSlack(
-      regionTop + offset,
+      regionTop + Number(state.verticalOffset) * layoutScale,
       regionBottom,
-      blocks.map((block) => block.height),
-      blocks.map((block) => block.gap),
+      order.map(heightOf),
+      gapsFor(),
     );
-    blocks.forEach((block, index) => {
-      const top = tops[index];
-      if (block.kind === "eyebrow") {
-        drawEyebrowChip(
-          state.upperText,
-          contentX,
-          top,
-          maxContentWidth,
-          layoutScale,
-          scale,
-          true,
-        );
-      } else if (block.kind === "title") {
-        drawBlock(mainBlock, contentX, top);
-      } else {
-        drawBlock(subtitleBlock, contentX, top);
-      }
-    });
+    order.forEach((kind, index) => drawKind(kind, tops[index]));
   } else {
     let cursorY =
       getOpticalStackTop(regionTop, regionBottom, stackHeight, 0.46) +
       Number(state.verticalOffset) * layoutScale;
     cursorY = clamp(cursorY, regionTop, Math.max(regionTop, regionBottom - stackHeight));
-    if (hasEyebrow) {
-      drawEyebrowChip(
-        state.upperText,
-        contentX,
-        cursorY,
-        maxContentWidth,
-        layoutScale,
-        scale,
-        true,
-      );
-      cursorY += eyebrowHeight + firstGap;
-    }
-    drawBlock(mainBlock, contentX, cursorY);
-    cursorY += mainBlock.height + secondGap;
-    drawBlock(subtitleBlock, contentX, cursorY);
+    const gaps = gapsFor();
+    order.forEach((kind, index) => {
+      drawKind(kind, cursorY);
+      cursorY += heightOf(kind) + (gaps[index] ?? 0);
+    });
   }
 
-  drawSpacedText(
-    state.footerText.trim(),
-    contentX,
-    cardY + cardHeight - 37 * layoutScale,
-    maxContentWidth,
-    state.footerAlign,
-    layoutScale,
-  );
-}
-
-function renderConversationContent({
-  cardX,
-  cardY,
-  cardWidth,
-  cardHeight,
-  padding,
-  layoutScale,
-}) {
-  const contentX = cardX + padding;
-  const maxContentWidth = cardWidth - padding * 2;
-  const centerX = cardX + cardWidth / 2;
-  drawTemplateCornerLabels({
-    cardX,
-    cardY,
-    cardWidth,
-    padding,
-    maxContentWidth,
-    layoutScale,
-  });
-
-  const panelHeight = 250 * layoutScale;
-  const panelY = cardY + cardHeight - 390 * layoutScale;
-  const panelRadius = 38 * layoutScale;
-  const typography = getTypographyProfile("experience");
-  const mainSize = Number(state.mainSize) * layoutScale;
-  const titleLines = wrapTitleLinesForEmphasis(
-    splitLines(state.titleText),
-    mainSize,
-    maxContentWidth,
-    typography,
-  );
-  let mainBlock = createBlock(
-    titleLines,
-    getTitleDesiredSizes(titleLines, mainSize, typography),
-    {
-      weight: typography.titleWeight,
-      family: state.titleFontFamily,
-      maxWidth: maxContentWidth,
-      minScale: 0.44,
-      fitMode: "perLine",
-      letterSpacingEm: typography.letterSpacingEm,
-      maxLineSizeRatio: 1.34,
-      lineHeight: Number(state.mainLineHeight),
-    },
-  );
-
-  const upperText = state.upperText.trim();
-  const upperSize = Math.min(Number(state.upperSize), 38) * layoutScale;
-  let upperHeight = upperText ? upperSize * 1.1 : 0;
-  let upperGap = upperText ? 34 * layoutScale : 0;
-  let stackHeight = upperHeight + upperGap + mainBlock.height;
-  const regionTop = cardY + 176 * layoutScale;
-  const regionBottom = panelY - 64 * layoutScale;
-  const availableHeight = Math.max(1, regionBottom - regionTop);
-  if (stackHeight > availableHeight) {
-    const fit = availableHeight / stackHeight;
-    mainBlock = scaleTextBlock(mainBlock, fit);
-    upperHeight *= fit;
-    upperGap *= fit;
-    stackHeight = availableHeight;
-  }
-
-  let cursorY =
-    getOpticalStackTop(regionTop, regionBottom, stackHeight, 0.46) +
-    Number(state.verticalOffset) * layoutScale;
-  cursorY = clamp(cursorY, regionTop, Math.max(regionTop, regionBottom - stackHeight));
-  if (upperText) {
-    context.save();
-    context.fillStyle = state.textColor;
-    context.globalAlpha = typography.upperAlpha;
-    drawCenteredFittedText(
-      upperText,
-      centerX,
-      cursorY + upperHeight * 0.8,
+  if (isModuleVisible("footer")) {
+    drawSpacedText(
+      state.footerText.trim(),
+      contentX,
+      cardY + cardHeight - 37 * layoutScale,
       maxContentWidth,
-      upperHeight,
-      750,
+      state.footerAlign,
+      layoutScale,
     );
-    context.restore();
-    cursorY += upperHeight + upperGap;
   }
-  drawCenteredBlock(mainBlock, centerX, cursorY);
-
-  // Prompt 卡保持独立于标题区域：用户只需修改下方副标题，就能得到类似对话输入框的内容承接。
-  context.save();
-  roundedRectPath(
-    context,
-    contentX,
-    panelY,
-    maxContentWidth,
-    panelHeight,
-    panelRadius,
-  );
-  context.fillStyle = normalizeHex(state.mediaColor) || defaults.mediaColor;
-  context.fill();
-  context.strokeStyle = state.inkColor;
-  context.globalAlpha = 0.18;
-  context.lineWidth = 2 * layoutScale;
-  context.stroke();
-  context.globalAlpha = 1;
-
-  context.fillStyle = state.textColor;
-  context.globalAlpha = 0.58;
-  context.font = fontString(800, 18 * layoutScale, "grotesk");
-  context.textAlign = "left";
-  context.textBaseline = "alphabetic";
-  context.fillText("PROMPT", contentX + 32 * layoutScale, panelY + 37 * layoutScale);
-  context.restore();
-
-  const subtitleSize = Math.min(Number(state.subtitleSize), 38) * layoutScale;
-  let promptBlock = createBlock(
-    splitLines(state.subtitleText),
-    splitLines(state.subtitleText).map(() => subtitleSize),
-    {
-      weight: 700,
-      family: state.fontFamily,
-      maxWidth: maxContentWidth - 64 * layoutScale,
-      minScale: 0.58,
-      lineGap: subtitleSize * 0.25,
-      alpha: typography.subtitleAlpha,
-    },
-  );
-  const promptTextHeight = panelHeight - 116 * layoutScale;
-  if (promptBlock.height > promptTextHeight) {
-    promptBlock = scaleTextBlock(promptBlock, promptTextHeight / promptBlock.height);
-  }
-  drawBlock(promptBlock, contentX + 32 * layoutScale, panelY + 57 * layoutScale);
-
-  const controlY = panelY + panelHeight - 43 * layoutScale;
-  const controlRadius = 23 * layoutScale;
-  context.save();
-  context.strokeStyle = state.textColor;
-  context.fillStyle = state.textColor;
-  context.lineWidth = 2.5 * layoutScale;
-  context.globalAlpha = 0.76;
-  context.beginPath();
-  context.arc(contentX + 42 * layoutScale, controlY, controlRadius, 0, Math.PI * 2);
-  context.stroke();
-  context.beginPath();
-  context.moveTo(contentX + 32 * layoutScale, controlY);
-  context.lineTo(contentX + 52 * layoutScale, controlY);
-  context.moveTo(contentX + 42 * layoutScale, controlY - 10 * layoutScale);
-  context.lineTo(contentX + 42 * layoutScale, controlY + 10 * layoutScale);
-  context.stroke();
-
-  const sendX = contentX + maxContentWidth - 42 * layoutScale;
-  context.globalAlpha = 1;
-  context.beginPath();
-  context.arc(sendX, controlY, controlRadius, 0, Math.PI * 2);
-  context.fill();
-  context.strokeStyle = state.cardColor;
-  context.lineWidth = 3 * layoutScale;
-  context.beginPath();
-  context.moveTo(sendX - 9 * layoutScale, controlY + 5 * layoutScale);
-  context.lineTo(sendX, controlY - 5 * layoutScale);
-  context.lineTo(sendX + 9 * layoutScale, controlY + 5 * layoutScale);
-  context.stroke();
-  context.restore();
-
-  drawSpacedText(
-    state.footerText.trim(),
-    contentX,
-    cardY + cardHeight - 36 * layoutScale,
-    maxContentWidth,
-    state.footerAlign,
-    layoutScale,
-  );
 }
 
-function drawDeepDiveVisual(metrics, layoutScale) {
+function drawPlaceholderVisual(metrics, layoutScale) {
   context.save();
   roundedRectPath(
     context,
@@ -2460,179 +1918,67 @@ function drawDeepDiveVisual(metrics, layoutScale) {
   context.restore();
 }
 
-function renderDeepDiveContent({
-  cardX,
-  cardY,
-  cardWidth,
-  cardHeight,
-  padding,
-  visualWindow,
-  visualFirst,
-  layoutScale,
-}) {
-  const contentX = cardX + padding;
-  const maxContentWidth = cardWidth - padding * 2;
-  const isMediaFirst = visualFirst ?? (state.photoLayout === "album" && visualWindow);
-  // 编辑杂志支持纯文字、下置证据图和上置大图；元信息始终贴近接下来要读的正文。
-  const metadataBaseline = isMediaFirst
-    ? visualWindow.y + visualWindow.height + 70 * layoutScale
-    : cardY + 105 * layoutScale;
-  drawCornerLabel(
-    state.topLeft.trim(),
-    contentX,
-    metadataBaseline,
-    "left",
-    maxContentWidth * 0.42,
-    layoutScale,
-  );
-  drawCornerLabel(
-    state.topRight.trim(),
-    cardX + cardWidth - padding,
-    metadataBaseline,
-    "right",
-    maxContentWidth * 0.42,
-    layoutScale,
-  );
+// 超大编号模块：版本号是版本解读类内容的记忆点，每套配色都必须是深色字。
+// 有照片时垫一块卡片色标牌保证对比；纯文字时主视觉区留空描边，编号直接落在卡片上。
+function drawBigNumberModule({ heroWindow, hasPhoto, layoutScale }) {
+  // 栏目名由角标模块负责画在卡片顶部，这里只画编号，避免同一句话出现两次。
+  const issue = state.topRight.trim();
+  if (!issue) return;
 
-  const dividerY = metadataBaseline + 31 * layoutScale;
-  context.save();
-  context.strokeStyle = state.textColor;
-  context.globalAlpha = 0.68;
-  context.lineWidth = 1.5 * layoutScale;
-  context.beginPath();
-  context.moveTo(contentX, dividerY);
-  context.lineTo(contentX + maxContentWidth, dividerY);
-  context.stroke();
-  context.restore();
-
-  const mainSize = Number(state.mainSize) * layoutScale;
-  const upperSize = Number(state.upperSize) * layoutScale;
-  const subtitleSize = Number(state.subtitleSize) * layoutScale;
-  const typography = getTypographyProfile("deepDive");
-  const titleLines = wrapTitleLinesForEmphasis(
-    splitLines(state.titleText),
-    mainSize,
-    maxContentWidth,
-    typography,
-  );
-  let mainBlock = createBlock(
-    titleLines,
-    getTitleDesiredSizes(titleLines, mainSize, typography),
-    {
-      weight: typography.titleWeight,
-      family: state.titleFontFamily,
-      maxWidth: maxContentWidth,
-      minScale: 0.46,
-      fitMode: "perLine",
-      letterSpacingEm: typography.letterSpacingEm,
-      maxLineSizeRatio: typography.maxLineSizeRatio,
-      lineHeight: Number(state.mainLineHeight),
-    },
-  );
-  let proofBlock = createBlock(
-    splitLines(state.upperText),
-    splitLines(state.upperText).map(() => upperSize),
-    {
-      weight: 700,
-      family: state.fontFamily,
-      maxWidth: maxContentWidth,
-      minScale: 0.62,
-      lineGap: upperSize * 0.24,
-      alpha: typography.upperAlpha,
-    },
-  );
-  let subtitleBlock = createBlock(
-    splitLines(state.subtitleText),
-    splitLines(state.subtitleText).map(() => subtitleSize),
-    {
-      weight: 700,
-      family: state.fontFamily,
-      maxWidth: maxContentWidth,
-      minScale: 0.58,
-      lineGap: subtitleSize * 0.25,
-      alpha: typography.subtitleAlpha,
-    },
-  );
-
-  const regionTop = dividerY + 46 * layoutScale;
-  let firstGap = 22 * layoutScale;
-  let secondGap = 28 * layoutScale;
-  // 底沿留出足够空间给页脚：文案排满时也不会压到 EDITORIAL SERIES 这行。
-  const safeBottom =
-    visualWindow && !isMediaFirst
-      ? visualWindow.y - 44 * layoutScale
-      : cardY + cardHeight - 96 * layoutScale;
-  let requestedHeight =
-    mainBlock.height +
-    proofBlock.height +
-    subtitleBlock.height +
-    (proofBlock.height ? firstGap : 0) +
-    (subtitleBlock.height ? secondGap : 0);
-  const availableHeight = Math.max(1, safeBottom - regionTop);
-
-  if (requestedHeight > availableHeight) {
-    const scale = availableHeight / requestedHeight;
-    const scaleBlock = (block) => ({
-      ...block,
-      sizes: block.sizes.map((size) => size * scale),
-      lineGap: block.lineGap * scale,
-      lineGaps: block.lineGaps.map((gap) => gap * scale),
-      height: block.height * scale,
-    });
-    mainBlock = scaleBlock(mainBlock);
-    proofBlock = scaleBlock(proofBlock);
-    subtitleBlock = scaleBlock(subtitleBlock);
-    firstGap *= scale;
-    secondGap *= scale;
-    requestedHeight = availableHeight;
+  if (!hasPhoto) {
+    // 纯文字时给主视觉区一圈描边和一层极淡的底，避免编号悬空。
+    context.save();
+    context.strokeStyle = state.inkColor;
+    context.globalAlpha = 0.22;
+    context.lineWidth = 3 * layoutScale;
+    roundedRectPath(
+      context,
+      heroWindow.x + 1.5 * layoutScale,
+      heroWindow.y + 1.5 * layoutScale,
+      heroWindow.width - 3 * layoutScale,
+      heroWindow.height - 3 * layoutScale,
+      heroWindow.radius,
+    );
+    context.stroke();
+    context.globalAlpha = 0.06;
+    context.fillStyle = state.inkColor;
+    roundedRectPath(
+      context,
+      heroWindow.x,
+      heroWindow.y,
+      heroWindow.width,
+      heroWindow.height,
+      heroWindow.radius,
+    );
+    context.fill();
+    context.restore();
+  } else {
+    // 照片上压一层底部渐变，托住下面那块标牌。
+    context.save();
+    roundedRectPath(
+      context,
+      heroWindow.x,
+      heroWindow.y,
+      heroWindow.width,
+      heroWindow.height,
+      heroWindow.radius,
+    );
+    context.clip();
+    const shade = context.createLinearGradient(
+      heroWindow.x,
+      heroWindow.y + heroWindow.height * 0.45,
+      heroWindow.x,
+      heroWindow.y + heroWindow.height,
+    );
+    shade.addColorStop(0, "rgba(0, 0, 0, 0)");
+    shade.addColorStop(1, "rgba(0, 0, 0, 0.45)");
+    context.fillStyle = shade;
+    context.fillRect(heroWindow.x, heroWindow.y, heroWindow.width, heroWindow.height);
+    context.restore();
   }
-
-  // 原来标题硬贴在分隔线下方，余量全部堆到卡片底部，形成一整块空白。
-  // 现在标题、论据和导读各自定位，富余空间摊到每条缝隙上。
-  const blocks = [{ block: mainBlock, gap: proofBlock.height ? firstGap : secondGap }];
-  if (proofBlock.height) {
-    blocks.push({ block: proofBlock, gap: subtitleBlock.height ? secondGap : 0 });
-  }
-  if (subtitleBlock.height) blocks.push({ block: subtitleBlock, gap: 0 });
-  const tops = distributeVerticalSlack(
-    regionTop + Number(state.verticalOffset) * layoutScale,
-    safeBottom,
-    blocks.map((entry) => entry.block.height),
-    blocks.map((entry) => entry.gap),
-  );
-  blocks.forEach((entry, index) => drawBlock(entry.block, contentX, tops[index]));
-
-  drawSpacedText(
-    state.footerText.trim(),
-    contentX,
-    cardY + cardHeight - 36 * layoutScale,
-    maxContentWidth,
-    state.footerAlign,
-    layoutScale,
-  );
-}
-
-function renderModelLaunchContent({
-  cardX,
-  cardY,
-  cardWidth,
-  cardHeight,
-  padding,
-  photoWindow,
-  layoutScale,
-}) {
-  const contentX = cardX + padding;
-  const maxContentWidth = cardWidth - padding * 2;
-  const isSupportingPhoto = photoWindow && state.photoLayout === "editorial";
-  const heroWindow =
-    photoWindow ||
-    {
-      x: contentX,
-      y: cardY + 120 * layoutScale,
-      width: maxContentWidth,
-      height: 500 * layoutScale,
-      radius: 38 * layoutScale,
-    };
+  // 标牌用的是卡片色：贴着主视觉边缘会和卡片连成一片，看起来像照片缺了一角。
+  // 有照片时多收一点，四周留出一圈照片。
+  const inset = (hasPhoto ? 42 : 26) * layoutScale;
 
   context.save();
   roundedRectPath(
@@ -2644,175 +1990,54 @@ function renderModelLaunchContent({
     heroWindow.radius,
   );
   context.clip();
-  if (photoWindow) {
-    const photoShade = context.createLinearGradient(
-      heroWindow.x,
-      heroWindow.y,
-      heroWindow.x,
-      heroWindow.y + heroWindow.height,
-    );
-    photoShade.addColorStop(0, "rgba(0, 0, 0, 0.32)");
-    photoShade.addColorStop(0.42, "rgba(0, 0, 0, 0.02)");
-    photoShade.addColorStop(1, "rgba(0, 0, 0, 0.7)");
-    context.fillStyle = photoShade;
-    context.fillRect(heroWindow.x, heroWindow.y, heroWindow.width, heroWindow.height);
-  } else {
-    context.fillStyle = normalizeHex(state.mediaColor) || defaults.mediaColor;
-    context.fillRect(heroWindow.x, heroWindow.y, heroWindow.width, heroWindow.height);
-    context.strokeStyle = pickReadableInk(normalizeHex(state.mediaColor) || defaults.mediaColor);
-    context.globalAlpha = 0.18;
-    context.lineWidth = 3 * layoutScale;
-    context.beginPath();
-    context.arc(
-      heroWindow.x + heroWindow.width * 0.2,
-      heroWindow.y + heroWindow.height * 0.08,
-      heroWindow.height * 0.62,
-      -0.35,
-      Math.PI * 1.25,
-    );
-    context.stroke();
-    context.globalAlpha = 1;
-  }
 
-  // 照片上压半透明黑渐变，白字最稳；纯色主视觉块则按块底色重新选墨。
-  const heroInk = photoWindow
-    ? "#FFFFFF"
-    : pickReadableInk(normalizeHex(state.mediaColor) || defaults.mediaColor);
-  const label = state.topLeft.trim();
-  if (label) {
-    let labelSize = 24 * layoutScale;
-    context.font = fontString(800, labelSize, "grotesk");
-    const labelMaxWidth = heroWindow.width * 0.62;
-    const measured = context.measureText(label).width;
-    if (measured > labelMaxWidth) labelSize *= labelMaxWidth / measured;
-    context.font = fontString(800, labelSize, "grotesk");
-    context.fillStyle = heroInk;
-    context.textAlign = "left";
-    context.textBaseline = "alphabetic";
-    context.fillText(
-      label,
-      heroWindow.x + 30 * layoutScale,
-      heroWindow.y + 48 * layoutScale,
-    );
-  }
-
-  const issue = state.topRight.trim() || "5.6";
-  let issueSize = Math.min(238 * layoutScale, heroWindow.height * 0.48);
+  // 有照片时编号是压在图上的角标；纯文字时它就是这张封面的主视觉，放到几乎撑满主视觉区。
+  let issueSize = hasPhoto
+    ? Math.min(232 * layoutScale, heroWindow.height * 0.46)
+    : Math.min(420 * layoutScale, heroWindow.height * 0.82);
   context.font = fontString(900, issueSize, state.titleFontFamily);
-  const issueMaxWidth = heroWindow.width - 56 * layoutScale;
+  const issueMaxWidth = heroWindow.width - inset * 2 - (hasPhoto ? 44 * layoutScale : 0);
+  const measured = context.measureText(issue).width;
+  if (measured > issueMaxWidth) issueSize *= issueMaxWidth / measured;
+  context.font = fontString(900, issueSize, state.titleFontFamily);
   const issueWidth = context.measureText(issue).width;
-  if (issueWidth > issueMaxWidth) issueSize *= issueMaxWidth / issueWidth;
-  context.font = fontString(900, issueSize, state.titleFontFamily);
-  context.fillStyle = heroInk;
+
+  const issueBaseline = hasPhoto
+    ? heroWindow.y + heroWindow.height - inset - issueSize * 0.16
+    : heroWindow.y + heroWindow.height / 2 + issueSize * 0.34;
+  const issueRight = hasPhoto
+    ? heroWindow.x + heroWindow.width - inset
+    : heroWindow.x + (heroWindow.width + issueWidth) / 2;
+
+  if (hasPhoto) {
+    const padX = 22 * layoutScale;
+    const padY = 12 * layoutScale;
+    const plateHeight = issueSize * 0.86 + padY * 2;
+    const plateWidth = issueWidth + padX * 2;
+    context.fillStyle = state.cardColor;
+    roundedRectPath(
+      context,
+      issueRight - plateWidth,
+      issueBaseline - issueSize * 0.7 - padY,
+      plateWidth,
+      plateHeight,
+      18 * layoutScale,
+    );
+    context.fill();
+  }
+
+  context.fillStyle = state.textColor;
   context.textAlign = "right";
   context.textBaseline = "alphabetic";
-  context.fillText(
-    issue,
-    heroWindow.x + heroWindow.width - 28 * layoutScale,
-    heroWindow.y + heroWindow.height - 18 * layoutScale,
-  );
+  context.fillText(issue, issueRight, issueBaseline);
+
   context.restore();
-
-  const typography = getTypographyProfile("hardwareVideo");
-  const mainSize = Number(state.mainSize) * layoutScale;
-  const upperSize = Math.min(Number(state.upperSize), 32) * layoutScale;
-  const subtitleSize = Number(state.subtitleSize) * layoutScale;
-  const titleLines = wrapTitleLinesForEmphasis(
-    splitLines(state.titleText),
-    mainSize,
-    maxContentWidth,
-    typography,
-  );
-  let mainBlock = createBlock(
-    titleLines,
-    getTitleDesiredSizes(titleLines, mainSize, typography),
-    {
-      weight: typography.titleWeight,
-      family: state.titleFontFamily,
-      maxWidth: maxContentWidth,
-      minScale: 0.46,
-      fitMode: "perLine",
-      letterSpacingEm: typography.letterSpacingEm,
-      maxLineSizeRatio: typography.maxLineSizeRatio,
-      lineHeight: Number(state.mainLineHeight),
-    },
-  );
-  let upperBlock = createBlock(
-    splitLines(state.upperText),
-    splitLines(state.upperText).map(() => upperSize),
-    {
-      weight: 800,
-      family: state.fontFamily,
-      maxWidth: maxContentWidth,
-      minScale: 0.62,
-      lineGap: upperSize * 0.2,
-      alpha: typography.upperAlpha,
-    },
-  );
-  let subtitleBlock = createBlock(
-    splitLines(state.subtitleText),
-    splitLines(state.subtitleText).map(() => subtitleSize),
-    {
-      weight: 700,
-      family: state.fontFamily,
-      maxWidth: maxContentWidth,
-      minScale: 0.58,
-      lineGap: subtitleSize * 0.24,
-      alpha: typography.subtitleAlpha,
-    },
-  );
-
-  let firstGap = upperBlock.height ? 18 * layoutScale : 0;
-  let secondGap = subtitleBlock.height ? 22 * layoutScale : 0;
-  let stackHeight =
-    upperBlock.height +
-    mainBlock.height +
-    subtitleBlock.height +
-    firstGap +
-    secondGap;
-  // 图文佐证把标题放在照片上方；大图主导与纯文字发布卡则先展示主视觉。
-  const regionTop = isSupportingPhoto
-    ? cardY + 154 * layoutScale
-    : heroWindow.y + heroWindow.height + 34 * layoutScale;
-  const regionBottom = isSupportingPhoto
-    ? heroWindow.y - 36 * layoutScale
-    : cardY + cardHeight - 96 * layoutScale;
-  const availableHeight = Math.max(1, regionBottom - regionTop);
-  if (stackHeight > availableHeight) {
-    const fit = availableHeight / stackHeight;
-    upperBlock = scaleTextBlock(upperBlock, fit);
-    mainBlock = scaleTextBlock(mainBlock, fit);
-    subtitleBlock = scaleTextBlock(subtitleBlock, fit);
-    firstGap *= fit;
-    secondGap *= fit;
-    stackHeight = availableHeight;
-  }
-
-  // 原来整组内容硬贴在主视觉下方，剩余空间全部落在页脚之上形成整块空白。
-  // 现在发布阶段、标题和升级维度各自定位，富余空间摊到每条缝隙上。
-  const blocks = [];
-  if (upperBlock.height) blocks.push({ block: upperBlock, gap: firstGap });
-  blocks.push({ block: mainBlock, gap: secondGap });
-  if (subtitleBlock.height) blocks.push({ block: subtitleBlock, gap: 0 });
-  const tops = distributeVerticalSlack(
-    regionTop + Number(state.verticalOffset) * layoutScale,
-    regionBottom,
-    blocks.map((entry) => entry.block.height),
-    blocks.map((entry) => entry.gap),
-  );
-  blocks.forEach((entry, index) => drawBlock(entry.block, contentX, tops[index]));
-
-  drawSpacedText(
-    state.footerText.trim(),
-    contentX,
-    cardY + cardHeight - 36 * layoutScale,
-    maxContentWidth,
-    state.footerAlign,
-    layoutScale,
-  );
 }
 
 function renderPoster() {
+  // 每帧重置：没有标题的构图不应该沿用上一帧的字号读数。
+  renderedTitleSize = null;
+  renderedTitleLineSizes = [];
   const { width: canvasWidth, height: canvasHeight } = getCanvasDimensions();
   if (canvas.width !== canvasWidth || canvas.height !== canvasHeight) {
     canvas.width = canvasWidth;
@@ -2862,10 +2087,6 @@ function renderPoster() {
 
   drawEditorialTechDecorations({ cardX, cardY, cardWidth, cardHeight, layoutScale });
 
-  const isDeepDive = state.noteType === "deepDive";
-  const isModelLaunch = state.noteType === "hardwareVideo";
-  const isTutorial = state.noteType === "tutorial";
-  const isProduct = state.noteType === "product";
   const hasPhotoMode = state.contentMode === "photo";
   const samplePhoto =
     editorialSamplePhoto.complete && editorialSamplePhoto.naturalWidth > 0
@@ -2875,238 +2096,50 @@ function renderPoster() {
   const photoWindow = hasPhotoMode
     ? getPhotoWindowMetrics(cardX, cardY, cardWidth, cardHeight, padding, layoutScale)
     : null;
-  if (state.noteType === "experience" && !photoWindow) {
-    renderConversationContent({
-      cardX,
-      cardY,
-      cardWidth,
-      cardHeight,
-      padding,
-      layoutScale,
-    });
-    syncPhotoTransformOverlay(null);
-    renderFeedPreview(canvasWidth, canvasHeight);
-    return;
-  }
-  if (isDeepDive) {
-    // 无照片时也保留一个上置视觉区，让“编辑杂志”与普通大字封面有明确结构差异。
-    const visualWindow =
-      photoWindow ||
-      {
-        x: contentX,
-        y: cardY + 112 * layoutScale,
-        width: maxContentWidth,
-        height: 360 * layoutScale,
-        radius: 36 * layoutScale,
-      };
-    if (photoWindow && displayPhoto) drawPhotoWindow(photoWindow, displayPhoto);
-    else drawDeepDiveVisual(visualWindow, layoutScale);
-    renderDeepDiveContent({
-      cardX,
-      cardY,
-      cardWidth,
-      cardHeight,
-      padding,
-      visualWindow,
-      visualFirst: !photoWindow || state.photoLayout === "album",
-      layoutScale,
-    });
-    syncPhotoTransformOverlay(photoWindow);
-    renderFeedPreview(canvasWidth, canvasHeight);
-    return;
-  }
-  if (isModelLaunch) {
-    if (photoWindow) {
-      if (displayPhoto) drawPhotoWindow(photoWindow, displayPhoto);
-      else drawSamplePhotoFallback(photoWindow);
-    }
-    renderModelLaunchContent({
-      cardX,
-      cardY,
-      cardWidth,
-      cardHeight,
-      padding,
-      photoWindow,
-      layoutScale,
-    });
-    syncPhotoTransformOverlay(photoWindow);
-    renderFeedPreview(canvasWidth, canvasHeight);
-    return;
-  }
+
+  // 主视觉区由照片和超大编号共用：两个都关就没有这一块，文字直接占满卡片。
+  const showBigNumber = isModuleVisible("bigNumber");
+  const heroWindow =
+    photoWindow ||
+    (showBigNumber
+      ? {
+          x: cardX + padding,
+          y: cardY + 120 * layoutScale,
+          width: cardWidth - padding * 2,
+          height: 440 * layoutScale,
+          radius: 38 * layoutScale,
+        }
+      : null);
+
   if (photoWindow) {
     if (displayPhoto) drawPhotoWindow(photoWindow, displayPhoto);
-    else drawDeepDiveVisual(photoWindow, layoutScale);
+    else drawPlaceholderVisual(photoWindow, layoutScale);
   }
-
-  if (isTutorial) {
-    renderTutorialContent({
-      cardX,
-      cardY,
-      cardWidth,
-      cardHeight,
-      padding,
-      photoWindow,
+  if (heroWindow && showBigNumber) {
+    drawBigNumberModule({
+      heroWindow,
+      hasPhoto: Boolean(photoWindow),
       layoutScale,
     });
-    syncPhotoTransformOverlay(photoWindow);
-    renderFeedPreview(canvasWidth, canvasHeight);
-    return;
   }
 
-  if (isProduct) {
-    renderProductContent({
-      cardX,
-      cardY,
-      cardWidth,
-      cardHeight,
-      padding,
-      photoWindow,
-      layoutScale,
-    });
-    syncPhotoTransformOverlay(photoWindow);
-    renderFeedPreview(canvasWidth, canvasHeight);
-    return;
-  }
-
-  const cornerBaseline = cardY + 105 * layoutScale;
-  drawCornerLabel(
-    state.topLeft.trim(),
-    contentX,
-    cornerBaseline,
-    "left",
-    maxContentWidth * 0.42,
+  renderCoverContent({
+    cardX,
+    cardY,
+    cardWidth,
+    cardHeight,
+    padding,
+    heroWindow,
     layoutScale,
-  );
-  drawCornerLabel(
-    state.topRight.trim(),
-    cardX + cardWidth - padding,
-    cornerBaseline,
-    "right",
-    maxContentWidth * 0.42,
-    layoutScale,
-  );
-
-  const upperLines = splitLines(state.upperText);
-  const subtitleLines = splitLines(state.subtitleText);
-
-  const typography = getTypographyProfile();
-  const isMediaFirstLayout = state.photoLayout === "album" && photoWindow;
-  const upperSize = Number(state.upperSize) * layoutScale;
-  const mainSize = Number(state.mainSize) * layoutScale;
-  const subtitleSize = Number(state.subtitleSize) * layoutScale;
-  const titleLines = wrapTitleLinesForEmphasis(
-    splitLines(state.titleText),
-    mainSize,
-    maxContentWidth,
-    typography,
-  );
-
-  const upperBlock = createBlock(
-    upperLines,
-    upperLines.map(() => upperSize),
-    {
-      weight: 700,
-      family: state.fontFamily,
-      maxWidth: maxContentWidth,
-      minScale: 0.62,
-      lineGap: upperSize * 0.25,
-      alpha: typography.upperAlpha,
-    },
-  );
-
-  const mainSizes = getTitleDesiredSizes(titleLines, mainSize, typography);
-  const mainBlock = createBlock(titleLines, mainSizes, {
-    weight: typography.titleWeight,
-    family: state.titleFontFamily,
-    maxWidth: maxContentWidth,
-    minScale: 0.46,
-    fitMode: "perLine",
-    letterSpacingEm: typography.letterSpacingEm,
-    maxLineSizeRatio: typography.maxLineSizeRatio,
-    // 行距直接跟随用户设置；不同字号的标题行会各自按比例换算真实间隙。
-    lineHeight: Number(state.mainLineHeight),
   });
-
-  const subtitleBlock = createBlock(
-    subtitleLines,
-    subtitleLines.map(() => subtitleSize),
-    {
-      weight: 700,
-      family: state.fontFamily,
-      maxWidth: maxContentWidth,
-      minScale: 0.58,
-      lineGap: subtitleSize * 0.28,
-      alpha: typography.subtitleAlpha,
-    },
-  );
-
-  let activeBlocks = [upperBlock, mainBlock, subtitleBlock].filter((block) => block.height > 0);
-  let groupGap = (isMediaFirstLayout ? 18 : Number(state.groupGap)) * layoutScale;
-  let groupHeight =
-    activeBlocks.reduce((sum, block) => sum + block.height, 0) +
-    Math.max(0, activeBlocks.length - 1) * groupGap;
-
-  const mediaTextRegion = isMediaFirstLayout
-    ? getMediaFirstTextRegion(cardY, cardHeight, photoWindow, layoutScale)
-    : null;
-  const safeContentTop = mediaTextRegion?.top ?? cardY + 158 * layoutScale;
-  // 图文佐证把标题放在照片上方；大图主导则先展示图片，再承接下方结论。
-  const safeContentBottom =
-    mediaTextRegion?.bottom ??
-    (photoWindow ? photoWindow.y - 44 * layoutScale : cardY + cardHeight - 90 * layoutScale);
-  const availableContentHeight = Math.max(1, safeContentBottom - safeContentTop);
-
-  // 空间不足时先压缩组间距，避免字号滑杆的变化被整体等比缩放抵消。
-  if (groupHeight > availableContentHeight && activeBlocks.length > 1) {
-    const blockHeight = activeBlocks.reduce((sum, block) => sum + block.height, 0);
-    const gapCount = activeBlocks.length - 1;
-    const fittingGap = (availableContentHeight - blockHeight) / gapCount;
-    const minimumGap = (isMediaFirstLayout ? 14 : 20) * layoutScale;
-    groupGap = Math.max(minimumGap, Math.min(groupGap, fittingGap));
-    groupHeight = blockHeight + gapCount * groupGap;
-  }
-
-  if (groupHeight > availableContentHeight) {
-    const verticalScale = availableContentHeight / groupHeight;
-    activeBlocks = activeBlocks.map((block) => ({
-      ...block,
-      sizes: block.sizes.map((size) => size * verticalScale),
-      lineGap: block.lineGap * verticalScale,
-      lineGaps: block.lineGaps.map((gap) => gap * verticalScale),
-      height: block.height * verticalScale,
-    }));
-    groupGap *= verticalScale;
-    groupHeight = availableContentHeight;
-  }
-
-  // 标题优先从安全区顶部开始，剩余留白集中到下方；避免上下各空一块把主标题夹小。
-  const preferredTop = safeContentTop + Number(state.verticalOffset) * layoutScale;
-  let blockTop = Math.max(
-    safeContentTop,
-    Math.min(preferredTop, safeContentBottom - groupHeight),
-  );
-
-  activeBlocks.forEach((block, index) => {
-    drawBlock(block, contentX, blockTop);
-    blockTop += block.height;
-    if (index < activeBlocks.length - 1) blockTop += groupGap;
-  });
-
-  const footerBaseline = cardY + cardHeight - 37 * layoutScale;
-  drawSpacedText(
-    state.footerText.trim(),
-    contentX,
-    footerBaseline,
-    maxContentWidth,
-    state.footerAlign,
-    layoutScale,
-  );
-
   syncPhotoTransformOverlay(photoWindow);
   renderFeedPreview(canvasWidth, canvasHeight);
 }
 
 function renderFeedPreview(canvasWidth, canvasHeight) {
+  // 量字号上限时会连画八帧；缩略图不影响排版结果，跳过能把这段开销降下来。
+  if (measuringMainSizeLimit) return;
+
   const previewWidth = 360;
   const previewHeight = Math.max(1, Math.round(previewWidth * (canvasHeight / canvasWidth)));
   if (feedPosterCanvas.width !== previewWidth || feedPosterCanvas.height !== previewHeight) {
@@ -3120,6 +2153,47 @@ function renderFeedPreview(canvasWidth, canvasHeight) {
   const title = splitLines(state.titleText).join(" ").trim();
   feedPosterTitle.textContent = title || "未命名封面";
   ratioBadge.textContent = `小红书图文 · ${canvasWidth} × ${canvasHeight} · 3:4`;
+  syncRenderedTitleReadout();
+}
+
+// 渲染完成后把“目标字号”旁边的实际字号补上，并说明是被宽度还是被高度压下去的。
+function syncRenderedTitleReadout() {
+  const output = document.querySelector('[data-output="mainSize"]');
+  if (!output) return;
+
+  const target = Number(state.mainSize);
+  if (!Number.isFinite(renderedTitleSize) || renderedTitleSize === null) {
+    output.value = `${target} px`;
+    output.dataset.state = "neutral";
+    return;
+  }
+
+  // 逐行适配会让最长一行更小、重点行保持大字号；这里比较的是画布上最大的那一行。
+  const shrunk = renderedTitleSize < target - 1;
+  output.value = shrunk
+    ? `实际 ${renderedTitleSize} · 目标 ${target} px`
+    : `${renderedTitleSize} px`;
+  // 多数模板默认就有一点收敛，只在滑杆明显空转时才变色，否则警告色会一直亮着失去意义。
+  output.dataset.state = !shrunk
+    ? "exact"
+    : renderedTitleSize < target * 0.9
+      ? "shrunk"
+      : "fitted";
+  output.title = shrunk
+    ? "标题被卡片宽度或可用高度压小了：继续往右拖不会更大。点「放到最大」直接跳到真正的上限，或减少每行字数、增加一次换行。"
+    : "滑杆字号已经完整生效。";
+
+  syncRenderedTitleLineReadouts();
+}
+
+function syncRenderedTitleLineReadouts() {
+  if (!titleLineSizeList) return;
+
+  titleLineSizeList.querySelectorAll("output[data-line-index]").forEach((output) => {
+    const actual = renderedTitleLineSizes[Number(output.dataset.lineIndex)];
+    if (!Number.isFinite(actual)) return;
+    output.value = `${output.dataset.percent}% · 实际 ${actual} px`;
+  });
 }
 
 function renderFloatingPreview() {
@@ -3290,8 +2364,9 @@ function updateRangeOutputs() {
   document.querySelectorAll("[data-output]").forEach((output) => {
     const key = output.dataset.output;
     if (key === "mainSize") {
-      const { limit, constrained } = syncMainSizeLimit();
-      output.value = `目标 ${state.mainSize} px${constrained ? ` · 安全上限 ${limit}` : ""}`;
+      syncMainSizeLimit();
+      // 实际字号要等这一帧画完才知道，统一由 syncRenderedTitleReadout 写入。
+      syncRenderedTitleReadout();
       return;
     }
 
@@ -3331,6 +2406,9 @@ function syncTitleLineSizeControls() {
 
     const output = document.createElement("output");
     const percentage = Math.round(scales[index] * 100);
+    // 真实字号要等这一帧画完才知道；先写目标值，渲染后由 syncRenderedTitleReadout 覆盖。
+    output.dataset.lineIndex = String(index);
+    output.dataset.percent = String(percentage);
     output.value = `${percentage}% · 目标 ${Math.round(Number(state.mainSize) * scales[index])} px`;
     labelRow.append(labelText, output);
 
@@ -3364,6 +2442,35 @@ function syncActiveTheme() {
   });
 }
 
+// 三档节奏是快捷入口而不是独立状态：当前数值刚好落在某一档上时才点亮它。
+function syncRhythmPresetButtons() {
+  const notePreset = defaults;
+  const matches = (presetId) => {
+    const rhythm = rhythmPresets[presetId];
+    if (presetId === "standard") {
+      return (
+        Number(state.mainLineHeight) === notePreset.mainLineHeight &&
+        Number(state.groupGap) === notePreset.groupGap &&
+        Number(state.upperSize) === notePreset.upperSize &&
+        Number(state.subtitleSize) === notePreset.subtitleSize
+      );
+    }
+    return (
+      Number(state.mainLineHeight) === rhythm.mainLineHeight &&
+      Number(state.groupGap) === rhythm.groupGap &&
+      Number(state.upperSize) === clamp(notePreset.upperSize + rhythm.upperSizeDelta, 26, 64) &&
+      Number(state.subtitleSize) ===
+        clamp(notePreset.subtitleSize + rhythm.subtitleSizeDelta, 26, 58)
+    );
+  };
+
+  document.querySelectorAll("[data-rhythm-preset]").forEach((button) => {
+    const isActive = matches(button.dataset.rhythmPreset);
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+}
+
 function syncFontPresetButtons() {
   const activePreset = Object.entries(fontPresets).find(
     ([, preset]) =>
@@ -3378,17 +2485,10 @@ function syncFontPresetButtons() {
   });
 }
 
-function syncNoteTypeButtons() {
-  document.querySelectorAll("[data-note-type]").forEach((button) => {
-    const isActive = button.dataset.noteType === state.noteType;
-    button.classList.toggle("is-active", isActive);
-    button.setAttribute("aria-pressed", String(isActive));
-  });
-}
 
 function syncTemplateCopyGuide() {
-  const guide = TEMPLATE_COPY_GUIDES[state.noteType];
-  const example = PRESET_FEED_CONTENT[state.noteType];
+  const guide = COPY_GUIDE;
+  const example = DEFAULT_CONTENT;
   if (!guide || !example) return;
 
   if (templateCopyGuideBestFor) {
@@ -3398,19 +2498,19 @@ function syncTemplateCopyGuide() {
     templateCopyGuideSummary.textContent = guide.summary;
   }
   if (templateCopyGuideList) {
-    const rows = guide.roles.map(([label, rule, sample]) => {
+    const rows = guide.roles.map((role) => {
       const row = document.createElement("div");
       row.className = "template-copy-guide-row";
 
       const labelElement = document.createElement("strong");
-      labelElement.textContent = label;
+      labelElement.textContent = role.label;
       const content = document.createElement("div");
       const ruleElement = document.createElement("span");
       ruleElement.className = "template-copy-guide-rule";
-      ruleElement.textContent = rule;
+      ruleElement.textContent = role.rule;
       const sampleElement = document.createElement("p");
       sampleElement.className = "template-copy-guide-sample";
-      sampleElement.textContent = sample;
+      sampleElement.textContent = role.sample;
       content.append(ruleElement, sampleElement);
       row.append(labelElement, content);
       return row;
@@ -3419,33 +2519,30 @@ function syncTemplateCopyGuide() {
   }
 
   if (applyTemplateExampleButton) {
-    const isCurrentExample = isSameTemplateContent(state, example);
+    const isCurrentExample = isSameContent(state, example);
     applyTemplateExampleButton.disabled = isCurrentExample;
     applyTemplateExampleButton.textContent = isCurrentExample
-      ? "已载入最佳示例"
-      : "载入最佳示例";
+      ? "已载入示例文案"
+      : "载入示例文案";
   }
   if (restoreTemplateContentButton) {
     restoreTemplateContentButton.hidden = !(
-      templateContentBeforeExample &&
-      templateContentBeforeExample.noteType === state.noteType
+      contentBeforeExample
     );
   }
 }
 
 function syncStyleControls() {
-  const preset = getNoteTypePreset();
   if (styleStatus) {
-    styleStatus.textContent = state.styleCustomized
-      ? `当前样式：${preset.label} · 已微调`
-      : `当前样式：${preset.label}`;
+    styleStatus.textContent = state.styleCustomized ? "排版：已微调" : "排版：推荐值";
   }
   if (styleDescription) {
     styleDescription.textContent = state.styleCustomized
-      ? "重选当前样式会恢复推荐排版；文案草稿、照片和配色保持不变。"
-      : `${preset.description}。下方原稿给出最佳字数与换行。`;
+      ? "「标准」节奏可以一键回到推荐排版；文案、照片和配色都不受影响。"
+      : "字数与换行建议直接显示在下面每个输入框上。";
   }
   syncTemplateCopyGuide();
+  syncModuleControls();
   if (customStyleControls) customStyleControls.hidden = !customStyleOpen;
   if (customStyleButton) {
     customStyleButton.textContent = customStyleOpen ? "精简参数" : "展开全部";
@@ -3453,27 +2550,80 @@ function syncStyleControls() {
   }
   if (photoLayoutPicker) photoLayoutPicker.hidden = false;
   if (photoPresetHint) {
-    const hints = {
-      experience: "纯文字时下方副标题会进入 Prompt 卡；切换图文后可补一张背景或结果截图。",
-      tutorial: "下方副标题可用 → 分隔 2–3 个步骤；照片适合放结果截图。",
-      product: "优先上传真实产品图或结果截图；避免把多张图挤进同一封面。",
-      deepDive: "纯文字展示手绘思考线稿；大图主导适合专题封面或文章头图。",
-      hardwareVideo: "右上角建议填写版本号，例如 5.6；上传横图后会成为发布主视觉。",
-    };
-    photoPresetHint.textContent = hints[state.noteType];
+    photoPresetHint.textContent =
+      "优先上传真实产品图或结果截图；主视觉区与超大编号共用同一块位置。";
   }
-  const textHints = {
-    experience: ["写提问背景或一句前置条件", "直接写读者正在问的问题", "写进 Prompt 卡：目标、限制或已有材料"],
-    tutorial: ["写步骤数量，例如：3 步快速上手", "写清要完成的结果", "用 → 分隔 2–3 个步骤"],
-    product: ["写测试条件或一句结论", "先写产品名，再写真实结果", "补充限制、成本或适用人群"],
-    deepDive: ["写议题、报告来源或证据", "像文章标题一样完整表达观点", "写导读或核心结论"],
-    hardwareVideo: ["写发布阶段，例如 FRONTIER UPDATE", "两行内说清升级重点", "补充能力、速度或适用边界"],
-  }[state.noteType];
-  if (textHints) {
-    upperTextHint.textContent = textHints[0];
-    titleTextHint.textContent = textHints[1];
-    subtitleTextHint.textContent = textHints[2];
+  syncFieldHints();
+}
+
+// 模块开关与槽位：关掉只是不渲染，输入框里的文字原样留着。
+function syncModuleControls() {
+  document.querySelectorAll("[data-module-toggle]").forEach((input) => {
+    const key = input.dataset.moduleToggle;
+    input.checked = isModuleOn(key);
+    const row = input.closest(".module-row");
+    if (row) {
+      row.classList.toggle("is-off", !input.checked);
+      row.classList.toggle("is-empty", isModuleOn(key) && !hasModuleContent(key));
+    }
+  });
+  document.querySelectorAll("[data-subtitle-slot]").forEach((button) => {
+    const isActive = button.dataset.subtitleSlot === state.subtitleSlot;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+}
+
+// 字段提示直接读写法参考：规则与示例贴在输入框上，不用滚回上面对照。
+const FIELD_HINT_TARGETS = {
+  corner: () => cornerHint,
+  upperText: () => upperTextHint,
+  titleText: () => titleTextHint,
+  subtitleText: () => subtitleTextHint,
+  footerText: () => footerTextHint,
+};
+
+function getTitleCopyRole() {
+  return COPY_GUIDE.roles.find(
+    (role) => role.field === "titleText",
+  );
+}
+
+function syncFieldHints() {
+  const guide = COPY_GUIDE;
+
+  guide.roles.forEach((role) => {
+    const target = FIELD_HINT_TARGETS[role.field]?.();
+    if (!target) return;
+    target.textContent = `${role.rule} · 例：${role.sample}`;
+  });
+
+  syncTitleTextCount();
+}
+
+// 主标题是唯一有字数区间的字段；超出区间只提示，不阻止输入。
+function syncTitleTextCount() {
+  if (!titleTextCount) return;
+
+  const role = getTitleCopyRole();
+  const characters = Array.from(state.titleText.replace(/\s/gu, "")).length;
+  const lineCount = splitLines(state.titleText).length;
+  titleTextCount.value = `${characters} 字 · ${lineCount} 行`;
+
+  if (!role?.min || !role?.max) {
+    titleTextCount.dataset.state = "neutral";
+    titleTextCount.title = "";
+    return;
   }
+
+  const tooShort = characters < role.min;
+  const tooLong = characters > role.max;
+  titleTextCount.dataset.state = tooShort || tooLong ? "warn" : "ok";
+  titleTextCount.title = tooShort
+    ? `建议 ${role.min}–${role.max} 字，现在偏短`
+    : tooLong
+      ? `建议 ${role.min}–${role.max} 字，现在偏长，Canvas 会自动缩小标题`
+      : `符合建议的 ${role.min}–${role.max} 字`;
 }
 
 function syncControls() {
@@ -3500,8 +2650,8 @@ function syncControls() {
 
   updateRangeOutputs();
   syncActiveTheme();
+  syncRhythmPresetButtons();
   syncFontPresetButtons();
-  syncNoteTypeButtons();
   syncStyleControls();
   syncPhotoLayoutButtons();
   syncPhotoEditModeButtons();
@@ -3556,10 +2706,12 @@ function bindStandardControls() {
       const previousTitleLineCount =
         key === "titleText" ? getCurrentRenderedTitleLines().length : null;
       state[key] = element.type === "range" ? Number(element.value) : element.value;
-      if (TEMPLATE_CONTENT_KEYS.includes(key)) {
-        updateCurrentTemplateContentDraft();
+      if (CONTENT_KEYS.includes(key)) {
         syncTemplateCopyGuide();
+        // 角标和右上角同时决定「角标」与「超大编号」两个模块是否有内容可画。
+        syncModuleControls();
       }
+      if (key === "titleText") syncTitleTextCount();
       if (key === "mainSize") state.mainSizePreference = state.mainSize;
       // 只在行数改变时恢复自动规则；同样行数内改文案时继续保留“第几行更大”的设计意图。
       if (
@@ -3710,6 +2862,20 @@ function renderThemeList() {
   if (!themeList) return;
 
   themeList.textContent = "";
+
+  // 分组数量直接由 themes 统计，增删配色不必再回头改 HTML 里的文案。
+  const themeCountHint = document.querySelector("#themeCountHint");
+  if (themeCountHint) {
+    themeCountHint.textContent = Object.entries(THEME_FAMILIES)
+      .map(
+        ([familyId, family]) =>
+          `${family.label} ${
+            Object.values(themes).filter((theme) => theme.family === familyId).length
+          } 组`,
+      )
+      .join(" · ");
+  }
+
   Object.entries(THEME_FAMILIES).forEach(([familyId, family]) => {
     const group = document.createElement("div");
     group.className = "theme-group";
@@ -3796,6 +2962,49 @@ function bindFontPresetControls() {
   });
 }
 
+function bindRhythmPresetControls() {
+  document.querySelectorAll("[data-rhythm-preset]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const presetId = button.dataset.rhythmPreset;
+      const rhythm = rhythmPresets[presetId];
+      if (!rhythm) return;
+
+      const notePreset = defaults;
+      if (presetId === "standard") {
+        state.mainLineHeight = notePreset.mainLineHeight;
+        state.groupGap = notePreset.groupGap;
+        state.upperSize = notePreset.upperSize;
+        state.subtitleSize = notePreset.subtitleSize;
+      } else {
+        // 副标题字号按模板推荐值偏移，避免把不同模板拉成同一套绝对值。
+        state.mainLineHeight = rhythm.mainLineHeight;
+        state.groupGap = rhythm.groupGap;
+        state.upperSize = clamp(notePreset.upperSize + rhythm.upperSizeDelta, 26, 64);
+        state.subtitleSize = clamp(notePreset.subtitleSize + rhythm.subtitleSizeDelta, 26, 58);
+      }
+
+      markStyleCustomized();
+      syncControls();
+      scheduleRender();
+      showToast(`排版节奏已设为「${rhythm.label}」`);
+    });
+  });
+}
+
+// 滑杆右端已经是真正的上限，这个按钮只是把偏好推到顶，省去精确拖到底的动作。
+function maximizeTitleSize() {
+  if (!splitLines(state.titleText).length) {
+    showToast("先填写主标题，再放大字号");
+    return;
+  }
+
+  state.mainSizePreference = MAX_MAIN_SIZE;
+  markStyleCustomized();
+  syncControls();
+  scheduleRender();
+  showToast(`主标题已放大到 ${state.mainSize} px`);
+}
+
 function bindPhotoLayoutControls() {
   document.querySelectorAll("[data-photo-layout]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -3819,21 +3028,38 @@ function bindPhotoLayoutControls() {
   });
 }
 
-function bindNoteTypeControls() {
-  document.querySelectorAll("[data-note-type]").forEach((button) => {
+function bindModuleControls() {
+  document.querySelectorAll("[data-module-toggle]").forEach((input) => {
+    input.addEventListener("change", () => {
+      const key = input.dataset.moduleToggle;
+      state.moduleToggles = { ...state.moduleToggles, [key]: input.checked };
+      invalidateMainSizeLimit();
+      syncControls();
+      scheduleRender();
+      showToast(
+        input.checked
+          ? `已显示「${MODULE_LABELS[key]}」`
+          : `已隐藏「${MODULE_LABELS[key]}」，文字仍保留在输入框里`,
+      );
+    });
+  });
+
+  document.querySelectorAll("[data-subtitle-slot]").forEach((button) => {
     button.addEventListener("click", () => {
-      if (button.dataset.noteType === state.noteType && !state.styleCustomized) return;
-      applyNoteTypePreset(button.dataset.noteType);
+      const slot = button.dataset.subtitleSlot;
+      if (!SUBTITLE_SLOTS.includes(slot) || state.subtitleSlot === slot) return;
+      state.subtitleSlot = slot;
+      invalidateMainSizeLimit();
+      syncControls();
+      scheduleRender();
+      showToast(slot === "above" ? "下方副标题已移到标题上方" : "下方副标题已回到标题下方");
     });
   });
 }
 
 function bindTemplateCopyGuideControls() {
-  applyTemplateExampleButton?.addEventListener("click", loadCurrentTemplateExample);
-  restoreTemplateContentButton?.addEventListener(
-    "click",
-    restoreTemplateContentBeforeExample,
-  );
+  applyTemplateExampleButton?.addEventListener("click", loadContentExample);
+  restoreTemplateContentButton?.addEventListener("click", restoreContentBeforeExample);
 }
 
 function bindCustomStyleControls() {
@@ -4141,7 +3367,7 @@ function bindPhotoControls() {
       uploadedPhotoUrl = nextUrl;
       state.contentMode = "photo";
       if (!["editorial", "album"].includes(state.photoLayout)) {
-        const recommendedLayout = getNoteTypePreset().photoLayout;
+        const recommendedLayout = defaults.photoLayout;
         state.photoLayout = ["editorial", "album"].includes(recommendedLayout)
           ? recommendedLayout
           : "editorial";
@@ -4221,46 +3447,58 @@ function mergeHistoryCoverGroup(source, covers) {
   renderHistoryCovers();
 }
 
+// 只剩一种版式后，这组对比不再是「不同模板」，而是同一份文案在几种模块组合下的样子。
+// 用用户当前真实文案渲染，比罐头示例更能说明主页会长成什么样。
+const PRESET_FEED_VARIANTS = Object.freeze([
+  {
+    id: "text-number",
+    name: "无图 · 超大编号",
+    contentMode: "text",
+    modules: { bigNumber: true },
+  },
+  {
+    id: "photo-below",
+    name: "图在标题下方",
+    contentMode: "photo",
+    photoLayout: "editorial",
+    modules: { bigNumber: false },
+  },
+  {
+    id: "photo-above",
+    name: "图在标题上方",
+    contentMode: "photo",
+    photoLayout: "album",
+    modules: { bigNumber: true },
+  },
+]);
+
 async function createPresetFeedCovers() {
   const originalState = { ...state };
   const originalPhoto = uploadedPhoto;
   const covers = [];
 
   try {
-    for (const noteType of PRESET_FEED_ORDER) {
-      const preset = getNoteTypePreset(noteType);
-      const framePreset = photoLayoutPresets[preset.photoLayout];
-      const { label, description, ...styleValues } = preset;
-      // 每套样式用它自己的默认配色，这样这组对比才等于主页真实会长成的样子；
-      // 用户手动挑过配色时以用户的选择为准，五张统一走那一套色。
-      const themeId = state.themeCustomized
-        ? null
-        : NOTE_TYPE_DEFAULT_THEMES[noteType];
+    for (const variant of PRESET_FEED_VARIANTS) {
+      const framePreset = photoLayoutPresets[variant.photoLayout || state.photoLayout];
       state = {
         ...originalState,
-        ...styleValues,
         ...framePreset,
-        ...PRESET_FEED_CONTENT[noteType],
-        ...(getThemeColors(themeId) || {}),
-        ...(themeId ? { themeId } : {}),
-        noteType,
-        contentMode: ["product", "deepDive", "hardwareVideo"].includes(noteType)
-          ? "photo"
-          : "text",
-        styleCustomized: false,
-        mainSizePreference: preset.mainSize,
+        contentMode: variant.contentMode,
+        photoLayout: variant.photoLayout || originalState.photoLayout,
+        moduleToggles: { ...originalState.moduleToggles, ...variant.modules },
         titleLineScales: null,
         photoFocusX: 50,
         photoFocusY: 50,
         photoEditMode: "frame",
       };
+      invalidateMainSizeLimit();
       // 图文样式读取内置本地示例照片，不访问用户相册。
       uploadedPhoto = null;
       renderPoster();
       covers.push({
-        id: `preset-${noteType}`,
+        id: `preset-${variant.id}`,
         source: "preset",
-        name: `样式 · ${label}`,
+        name: `组合 · ${variant.name}`,
         dataUrl: canvas.toDataURL("image/jpeg", 0.88),
       });
     }
@@ -4445,8 +3683,8 @@ async function downloadPoster() {
 
 function resetPoster() {
   clearUploadedPhoto({ render: false, notify: false });
-  state = { ...defaults, templateContentDrafts: {} };
-  templateContentBeforeExample = null;
+  state = { ...defaults };
+  contentBeforeExample = null;
   customStyleOpen = true;
   syncControls();
   scheduleRender();
@@ -4455,13 +3693,17 @@ function resetPoster() {
 
 function initialize() {
   renderThemeList();
-  bindNoteTypeControls();
+  bindModuleControls();
   bindTemplateCopyGuideControls();
   bindCustomStyleControls();
   bindStandardControls();
   bindTitleLineSizeControls();
   bindThemes();
   bindFontPresetControls();
+  bindRhythmPresetControls();
+  document
+    .querySelector("#maximizeTitleSizeButton")
+    ?.addEventListener("click", maximizeTitleSize);
   bindPhotoLayoutControls();
   bindPhotoControls();
   bindPhotoTransformGestures();
