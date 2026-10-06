@@ -98,6 +98,7 @@ cp \
   /var/www/xhs-poster-studio/app.js \
   /var/www/xhs-poster-studio/README.md \
   "$backup_dir/"
+cp -a /var/www/xhs-poster-studio/assets "$backup_dir/assets"
 printf "backup=%s\n" "$backup_dir"
 '
 ```
@@ -110,8 +111,22 @@ rsync -av --checksum \
   styles.css \
   app.js \
   README.md \
-  assets/fonts/ \
   root@14.103.53.126:/var/www/xhs-poster-studio/
+
+ssh root@14.103.53.126 \
+  'mkdir -p /var/www/xhs-poster-studio/assets/fonts /var/www/xhs-poster-studio/assets/presets'
+
+rsync -av --checksum \
+  assets/fonts/ \
+  root@14.103.53.126:/var/www/xhs-poster-studio/assets/fonts/
+
+rsync -av --checksum \
+  assets/presets/editorial-workbench-sample-v1.jpg \
+  root@14.103.53.126:/var/www/xhs-poster-studio/assets/presets/
+
+rsync -av --checksum \
+  assets/published-covers.js \
+  root@14.103.53.126:/var/www/xhs-poster-studio/assets/
 ```
 
 修正权限并检查 Nginx：
@@ -125,12 +140,16 @@ chown root:root \
   /var/www/xhs-poster-studio/app.js \
   /var/www/xhs-poster-studio/README.md \
   /var/www/xhs-poster-studio/assets/fonts/Yozai-Medium.ttf \
-  /var/www/xhs-poster-studio/assets/fonts/Yozai-OFL.txt
+  /var/www/xhs-poster-studio/assets/fonts/Yozai-OFL.txt \
+  /var/www/xhs-poster-studio/assets/presets/editorial-workbench-sample-v1.jpg \
+  /var/www/xhs-poster-studio/assets/published-covers.js
 chmod 0644 \
   /var/www/xhs-poster-studio/index.html \
   /var/www/xhs-poster-studio/styles.css \
   /var/www/xhs-poster-studio/app.js \
-  /var/www/xhs-poster-studio/README.md
+  /var/www/xhs-poster-studio/README.md \
+  /var/www/xhs-poster-studio/assets/presets/editorial-workbench-sample-v1.jpg \
+  /var/www/xhs-poster-studio/assets/published-covers.js
 nginx -t
 '
 ```
@@ -178,8 +197,10 @@ systemctl is-active nginx
 curl -fsSI http://14.103.53.126/
 curl -fsSI http://14.103.53.126/poster
 curl -fsSI http://14.103.53.126/poster/
-curl -fsSI 'http://14.103.53.126/poster/styles.css?v=20260724-15'
-curl -fsSI 'http://14.103.53.126/poster/app.js?v=20260724-15'
+curl -fsSI 'http://14.103.53.126/poster/styles.css?v=20260814-1'
+curl -fsSI 'http://14.103.53.126/poster/app.js?v=20260814-1'
+curl -fsSI 'http://14.103.53.126/poster/assets/published-covers.js?v=20260806-2'
+curl -fsSI http://14.103.53.126/poster/assets/presets/editorial-workbench-sample-v1.jpg
 curl -fsSI http://14.103.53.126/poster/assets/fonts/Yozai-Medium.ttf
 ```
 
@@ -187,17 +208,19 @@ curl -fsSI http://14.103.53.126/poster/assets/fonts/Yozai-Medium.ttf
 
 - 裸 IP 和 `/poster` 返回 `308`，目标是 `/poster/`。
 - `/poster/`、CSS 和 JavaScript 返回 `200`。
-- 页面 HTML 包含 `photoInput`，说明照片功能已经部署。
+- 页面 HTML 包含 `templateCopyGuideTitle` 和 `photoInput`，说明模板原稿与照片功能已经部署。
 
 界面还需要在浏览器中验证：
 
-1. 切换十套配色，并选择“自然手写”确认预览和导出字形一致。
-2. 选择照片，在“调整区域”中拖动照片模块并从四角调整宽高。
-3. 切换“调整取景”，直接拖动区域内的照片内容，并切换“文字海报 / 专辑焦点”。
-4. 确认卡片宽高与圆角没有逐篇调节入口。
-5. 移除照片并确认恢复纯文字布局。
-6. 切换海报和列表预览。
-7. 导出 PNG，并确认像素尺寸为 `1080 × 1440`。
+1. 切换五套模板，确认首次进入会载入模板原稿，改写后返回会恢复该模板自己的草稿。
+2. 点击“载入最佳示例 / 恢复载入前文案”，确认不会意外丢失当前文案。
+3. 切换两套色系共十一组配色，并选择“自然手写”确认预览和导出字形一致。
+4. 选择照片，在“调整区域”中拖动照片模块并从四角调整宽高。
+5. 切换“调整取景”，直接拖动区域内的照片内容，并切换“纯文字 / 图文佐证 / 大图主导”。
+6. 确认卡片宽高与圆角没有逐篇调节入口。
+7. 移除照片并确认恢复纯文字布局。
+8. 切换海报和列表预览。
+9. 导出 PNG，并确认像素尺寸为 `1080 × 1440`。
 
 ## 7. 回滚
 
