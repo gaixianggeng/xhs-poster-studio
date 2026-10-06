@@ -90,6 +90,9 @@ const titleWordSegmenter =
 // 象牙与近黑是「满幅色场」系列的固定两层，只有满幅 accent 随主题变化。
 const FIELD_CARD_COLOR = "#FAF9F5";
 const FIELD_INK_COLOR = "#141413";
+// 参考色环的炭灰底与亮色：统一外框和文字色，切换色相时保留同一套视觉骨架。
+const INK_BACKGROUND_COLOR = "#282828";
+const INK_TEXT_COLOR = "#101010";
 // accent 与象牙卡对比过低时，卡片轮廓会在白色信息流里消失；低于该比值就补一条墨色细边。
 const CARD_OUTLINE_MIN_RATIO = 1.7;
 
@@ -128,12 +131,12 @@ const defaults = Object.freeze({
   ...DEFAULT_CONTENT,
   footerAlign: "center",
   floatingPreviewSide: "right",
-  backgroundColor: "#02181A",
-  cardColor: "#41CFD8",
-  textColor: "#04201F",
+  backgroundColor: INK_BACKGROUND_COLOR,
+  cardColor: "#02B1FF",
+  textColor: INK_TEXT_COLOR,
   // mediaColor 负责照片占位与视觉块底色，inkColor 负责插画墨线与装饰。
-  mediaColor: "#02181A",
-  inkColor: "#04201F",
+  mediaColor: INK_BACKGROUND_COLOR,
+  inkColor: INK_TEXT_COLOR,
   fontFamily: "grotesk",
   titleFontFamily: "grotesk",
   mainSize: 280,
@@ -181,106 +184,103 @@ function isModuleVisible(key) {
 
 const THEME_FAMILIES = Object.freeze({
   ink: {
-    label: "深底高对比",
-    hint: "近黑画布 + 单一高饱和亮卡；缩略图冲击力最强，延续账号已发布的封面",
+    label: "深底亮卡",
   },
   field: {
-    label: "满幅色场",
-    hint: "满幅色场 + 象牙承载卡 + 近黑墨线；适合观点、教程与深度内容",
+    label: "彩底浅卡",
   },
   paper: {
-    label: "浅纸彩卡",
-    hint: "浅纸画布 + 彩卡承载文字；卡片在白色信息流里最跳，适合单点主张",
+    label: "浅底彩卡",
   },
 });
 
 // 三套基础色系一律使用深色文字：白字在双列缩略图里冲击力不足。
-// 每套只允许一个色相：背景、卡片、媒体块和墨线都由同一个色系派生。
+// 彩色卡片只保留一个主色，外框与文字用中性色，避免多个亮色争抢标题。
 const themes = Object.freeze({
-  // ——「深底高对比」：近黑画布 + 高饱和亮卡 + 近黑字，取自账号已发布封面的实际取色。
+  // ——「炭灰亮色」：亮色取自参考图。文字用 #101010，让 92% 不透明度的副标题在蓝、紫卡上也达到 4.5:1。
   cyanInk: {
-    label: "青绿墨底",
+    label: "天蓝",
     family: "ink",
-    backgroundColor: "#02181A",
-    cardColor: "#41CFD8",
-    textColor: "#04201F",
-    mediaColor: "#02181A",
-    inkColor: "#04201F",
+    backgroundColor: INK_BACKGROUND_COLOR,
+    cardColor: "#02B1FF",
+    textColor: INK_TEXT_COLOR,
+    mediaColor: INK_BACKGROUND_COLOR,
+    inkColor: INK_TEXT_COLOR,
   },
-  emberInk: {
-    label: "橙红墨底",
+  sunshineInk: {
+    label: "暖黄",
     family: "ink",
-    backgroundColor: "#141010",
-    cardColor: "#F2542C",
-    textColor: "#210A03",
-    mediaColor: "#141010",
-    inkColor: "#210A03",
+    backgroundColor: INK_BACKGROUND_COLOR,
+    cardColor: "#FFCC39",
+    textColor: INK_TEXT_COLOR,
+    mediaColor: INK_BACKGROUND_COLOR,
+    inkColor: INK_TEXT_COLOR,
+  },
+  orchidInk: {
+    label: "兰紫",
+    family: "ink",
+    backgroundColor: INK_BACKGROUND_COLOR,
+    cardColor: "#DD6ADC",
+    textColor: INK_TEXT_COLOR,
+    mediaColor: INK_BACKGROUND_COLOR,
+    inkColor: INK_TEXT_COLOR,
   },
   lemonInk: {
-    label: "柠檬墨底",
+    label: "青柠",
     family: "ink",
-    backgroundColor: "#0D1206",
-    cardColor: "#D9F46C",
-    textColor: "#1C2205",
-    mediaColor: "#0D1206",
-    inkColor: "#1C2205",
-  },
-  azureInk: {
-    label: "电光蓝墨底",
-    family: "ink",
-    backgroundColor: "#050B16",
-    cardColor: "#4FA8FF",
-    textColor: "#04203E",
-    mediaColor: "#050B16",
-    inkColor: "#04203E",
-  },
-  monoInk: {
-    label: "纯黑白",
-    family: "ink",
-    backgroundColor: "#000000",
-    cardColor: "#F5F5F5",
-    textColor: "#0A0A0A",
-    mediaColor: "#000000",
-    inkColor: "#0A0A0A",
-  },
-  violetInk: {
-    label: "紫罗兰墨底",
-    family: "ink",
-    backgroundColor: "#0A0714",
-    cardColor: "#B389FF",
-    textColor: "#160A2E",
-    mediaColor: "#0A0714",
-    inkColor: "#160A2E",
+    backgroundColor: INK_BACKGROUND_COLOR,
+    cardColor: "#B6D80D",
+    textColor: INK_TEXT_COLOR,
+    mediaColor: INK_BACKGROUND_COLOR,
+    inkColor: INK_TEXT_COLOR,
   },
   magentaInk: {
-    label: "品红墨底",
+    label: "桃粉",
     family: "ink",
-    backgroundColor: "#150710",
-    cardColor: "#FF5C9E",
-    textColor: "#2A0512",
-    mediaColor: "#150710",
-    inkColor: "#2A0512",
+    backgroundColor: INK_BACKGROUND_COLOR,
+    cardColor: "#FA70AB",
+    textColor: INK_TEXT_COLOR,
+    mediaColor: INK_BACKGROUND_COLOR,
+    inkColor: INK_TEXT_COLOR,
+  },
+  emberInk: {
+    label: "珊瑚",
+    family: "ink",
+    backgroundColor: INK_BACKGROUND_COLOR,
+    cardColor: "#FF8066",
+    textColor: INK_TEXT_COLOR,
+    mediaColor: INK_BACKGROUND_COLOR,
+    inkColor: INK_TEXT_COLOR,
+  },
+  tealInk: {
+    label: "青绿",
+    family: "ink",
+    backgroundColor: INK_BACKGROUND_COLOR,
+    cardColor: "#02BB9F",
+    textColor: INK_TEXT_COLOR,
+    mediaColor: INK_BACKGROUND_COLOR,
+    inkColor: INK_TEXT_COLOR,
+  },
+  azureInk: {
+    label: "电光蓝",
+    family: "ink",
+    backgroundColor: INK_BACKGROUND_COLOR,
+    cardColor: "#4678FF",
+    textColor: INK_TEXT_COLOR,
+    mediaColor: INK_BACKGROUND_COLOR,
+    inkColor: INK_TEXT_COLOR,
+  },
+  violetInk: {
+    label: "紫罗兰",
+    family: "ink",
+    backgroundColor: INK_BACKGROUND_COLOR,
+    cardColor: "#A25AFF",
+    textColor: INK_TEXT_COLOR,
+    mediaColor: INK_BACKGROUND_COLOR,
+    inkColor: INK_TEXT_COLOR,
   },
 
   // ——「满幅色场」：accent 铺满画布、象牙卡承载文字、近黑负责所有墨线。
-  cactusField: {
-    label: "仙人掌绿",
-    family: "field",
-    backgroundColor: "#9DBFB1",
-    cardColor: FIELD_CARD_COLOR,
-    textColor: FIELD_INK_COLOR,
-    mediaColor: "#9DBFB1",
-    inkColor: FIELD_INK_COLOR,
-  },
-  heatherField: {
-    label: "石楠紫",
-    family: "field",
-    backgroundColor: "#AFADCE",
-    cardColor: FIELD_CARD_COLOR,
-    textColor: FIELD_INK_COLOR,
-    mediaColor: "#AFADCE",
-    inkColor: FIELD_INK_COLOR,
-  },
   clayField: {
     label: "陶土橙",
     family: "field",
@@ -288,24 +288,6 @@ const themes = Object.freeze({
     cardColor: FIELD_CARD_COLOR,
     textColor: FIELD_INK_COLOR,
     mediaColor: "#D97757",
-    inkColor: FIELD_INK_COLOR,
-  },
-  skyField: {
-    label: "晴空蓝",
-    family: "field",
-    backgroundColor: "#6A9BCC",
-    cardColor: FIELD_CARD_COLOR,
-    textColor: FIELD_INK_COLOR,
-    mediaColor: "#6A9BCC",
-    inkColor: FIELD_INK_COLOR,
-  },
-  oliveField: {
-    label: "橄榄绿",
-    family: "field",
-    backgroundColor: "#788C5D",
-    cardColor: FIELD_CARD_COLOR,
-    textColor: FIELD_INK_COLOR,
-    mediaColor: "#788C5D",
     inkColor: FIELD_INK_COLOR,
   },
   signalGrid: {
@@ -330,38 +312,6 @@ const themes = Object.freeze({
     mediaColor: "#F5EFE5",
     inkColor: "#2E0D04",
   },
-  forestPaper: {
-    label: "墨绿纸",
-    family: "paper",
-    backgroundColor: "#F1F1E9",
-    cardColor: "#7FB79F",
-    textColor: "#0E2A20",
-    mediaColor: "#F1F1E9",
-    inkColor: "#0E2A20",
-  },
-  indigoPaper: {
-    label: "靛蓝纸",
-    family: "paper",
-    backgroundColor: "#EEF0F5",
-    cardColor: "#7FA8E8",
-    textColor: "#0B1B3D",
-    mediaColor: "#EEF0F5",
-    inkColor: "#0B1B3D",
-  },
-  plumPaper: {
-    label: "深梅纸",
-    family: "paper",
-    backgroundColor: "#F4EDEE",
-    cardColor: "#E39BB8",
-    textColor: "#35101F",
-    mediaColor: "#F4EDEE",
-    inkColor: "#35101F",
-  },
-});
-
-const LEGACY_FIELD_THEME_COLORS = Object.freeze({
-  cactusField: "#BCD1CA",
-  heatherField: "#CBCADB",
 });
 
 const LEGACY_SIGNAL_GRID_COLORS = Object.freeze({
@@ -598,15 +548,8 @@ function loadState() {
     ) {
       Object.assign(merged, getThemeColors("signalGrid"));
     }
-    // 只有当保存的色值确实还是这两套配色的旧值时才更新，手动改过的自定义色仍原样保留。
-    const legacyFieldColor = LEGACY_FIELD_THEME_COLORS[merged.themeId];
-    if (
-      legacyFieldColor &&
-      normalizeHex(merged.backgroundColor) === legacyFieldColor &&
-      normalizeHex(merged.mediaColor) === legacyFieldColor
-    ) {
-      Object.assign(merged, getThemeColors(merged.themeId));
-    }
+    // 预设更新不重染已保存的封面；旧色值保留为自定义，避免色卡与成图颜色不一致。
+    merged.themeId = inferThemeIdFromColors(merged) || "custom";
     if (merged.themeId === "custom") merged.themeCustomized = true;
     if (!Object.prototype.hasOwnProperty.call(validSaved, "contentMode")) {
       merged.contentMode = "text";
@@ -2857,70 +2800,43 @@ function bindPreviewModes() {
   });
 }
 
-// 配色列表按系列分组渲染，色值与受控装饰只在 themes 里维护一份，避免和 HTML 重复。
+// 新旧配色共用同一列表和海报缩略图，底色结构只作为说明，不再拆成独立模块。
 function renderThemeList() {
   if (!themeList) return;
 
   themeList.textContent = "";
 
-  // 分组数量直接由 themes 统计，增删配色不必再回头改 HTML 里的文案。
   const themeCountHint = document.querySelector("#themeCountHint");
   if (themeCountHint) {
-    themeCountHint.textContent = Object.entries(THEME_FAMILIES)
-      .map(
-        ([familyId, family]) =>
-          `${family.label} ${
-            Object.values(themes).filter((theme) => theme.family === familyId).length
-          } 组`,
-      )
-      .join(" · ");
+    themeCountHint.textContent = `${Object.keys(themes).length} 组配色，整套切换`;
   }
 
-  Object.entries(THEME_FAMILIES).forEach(([familyId, family]) => {
-    const group = document.createElement("div");
-    group.className = "theme-group";
-    group.dataset.themeFamily = familyId;
+  Object.entries(themes).forEach(([themeId, theme]) => {
+    const chip = document.createElement("button");
+    chip.className = "theme-chip";
+    chip.type = "button";
+    chip.dataset.theme = themeId;
+    chip.setAttribute("aria-pressed", "false");
 
-    const heading = document.createElement("div");
-    heading.className = "theme-group-heading";
-    const name = document.createElement("strong");
-    name.textContent = family.label;
-    const hint = document.createElement("span");
-    hint.textContent = family.hint;
-    heading.append(name, hint);
+    const preview = document.createElement("span");
+    preview.className = "theme-chip-preview";
+    preview.setAttribute("aria-hidden", "true");
+    preview.style.setProperty("--chip-field", theme.backgroundColor);
+    preview.style.setProperty("--chip-card", theme.cardColor);
+    preview.style.setProperty("--chip-ink", theme.inkColor);
+    if (theme.decorator) preview.dataset.decorator = theme.decorator;
+    if (theme.accentColor) preview.style.setProperty("--chip-accent", theme.accentColor);
 
-    const chips = document.createElement("div");
-    chips.className = "theme-group-chips";
-    Object.entries(themes)
-      .filter(([, theme]) => theme.family === familyId)
-      .forEach(([themeId, theme]) => {
-        const chip = document.createElement("button");
-        chip.className = "theme-chip";
-        chip.type = "button";
-        chip.dataset.theme = themeId;
-        chip.setAttribute("aria-pressed", "false");
+    const copy = document.createElement("span");
+    copy.className = "theme-chip-copy";
+    const title = document.createElement("strong");
+    title.textContent = theme.label;
+    const structure = document.createElement("small");
+    structure.textContent = THEME_FAMILIES[theme.family].label;
+    copy.append(title, structure);
 
-        const preview = document.createElement("span");
-        preview.className = "theme-chip-preview";
-        preview.setAttribute("aria-hidden", "true");
-        preview.style.setProperty("--chip-field", theme.backgroundColor);
-        preview.style.setProperty("--chip-card", theme.cardColor);
-        preview.style.setProperty("--chip-ink", theme.inkColor);
-        if (theme.decorator) preview.dataset.decorator = theme.decorator;
-        if (theme.accentColor) preview.style.setProperty("--chip-accent", theme.accentColor);
-
-        const copy = document.createElement("span");
-        copy.className = "theme-chip-copy";
-        const title = document.createElement("strong");
-        title.textContent = theme.label;
-        copy.append(title);
-
-        chip.append(preview, copy);
-        chips.append(chip);
-      });
-
-    group.append(heading, chips);
-    themeList.append(group);
+    chip.append(preview, copy);
+    themeList.append(chip);
   });
 }
 
