@@ -95,12 +95,7 @@ docs/          网站项目上下文、部署说明与历史设计截图
 python3 -m http.server 4173
 ```
 
-生产文件位于火山引擎中国大陆服务器 `14.103.53.126` 的 `/var/www/xhs-poster-studio`。
-
-- 临时入口：公网 HTTP 直接进入 Nginx 80 端口，通过 `/poster/` 映射静态目录；裸 IP 根路径会跳转到 `/poster/`。
-- 正式入口：HAProxy 接收公网 443，根据 `poster.code89757.com` 的 SNI 分流到 Nginx `127.0.0.1:18445`；Nginx 使用 Let's Encrypt 证书提供静态文件。
-- 当前限制：正式域名在火山引擎公网边界被备案校验阻断。HTTP 会由 `Server: Suzaku` 跳转到 `webblock.volcengine.com`，HTTPS 会在 SNI 阶段关闭连接。
-- 旧服务状态：聊天归档后端 `127.0.0.1:18083` 已停止，`wechat.wdlymr.cn` 已迁移到 `47.116.58.5`。服务器仍保留显式 `/chat-archive/` 路径作为回退，但 IP 根路径不再跳转到它。
+生产环境为腾讯云上的静态站点 `https://xhs.code89757.com`，文件位于 `/var/www/xhs-poster-studio`，由 Nginx 提供 HTTPS。2026-09-11 之前部署在火山引擎，旧域名 `poster.code89757.com` 因备案校验阻断已下线。服务器地址、登录方式与备份路径只记录在本地的 `docs/DEPLOYMENT.local.md`，不入库。
 
 完整发布和回滚步骤见 [DEPLOYMENT.md](./DEPLOYMENT.md)。
 
@@ -109,8 +104,7 @@ python3 -m http.server 4173
 - 无后端 API、数据库和服务端状态。
 - 文案与样式保存在 `localStorage` 的 `xhs-poster-studio:field-note:v1`（旧版式的 `xhs-poster-studio:v1` 不再读取）；截图和主页对比封面仅保存在页面运行时内存，刷新后需要重新选择。
 - 截图文件上限为 20 MB，不上传服务器。
-- 临时地址：[http://14.103.53.126/poster/](http://14.103.53.126/poster/)。
-- 正式域名：[https://poster.code89757.com](https://poster.code89757.com)，等待备案问题处理。
+- 正式域名：[https://xhs.code89757.com](https://xhs.code89757.com)。
 - 静态资源使用版本查询参数规避一小时浏览器缓存导致的新旧脚本混用。
 
 ### 环境变量
@@ -125,8 +119,7 @@ python3 -m http.server 4173
 | --- | --- | --- | --- |
 | 前端源文件 | 页面运行与继续开发 | 项目根目录 | 已具备 |
 | Nginx 配置 | 复现生产站点入口 | `deploy/nginx/` | 已具备 |
-| 临时 IP 入口 | 当前线上访问与验收 | `http://14.103.53.126/poster/` | 可用 |
-| 生产域名 | 正式 HTTPS 访问 | `poster.code89757.com` | 已配置，等待备案或接入备案 |
+| 生产域名 | 正式 HTTPS 访问 | `xhs.code89757.com` | 可用 |
 | Cloudflare DNS 账号 | 后续 DNS 维护 | 外部安全账户，凭据不进入仓库 | 已配置 |
 | 生产服务器访问权限 | 后续部署 | 外部安全凭据，不进入仓库 | 已配置 |
 
@@ -136,7 +129,7 @@ python3 -m http.server 4173
 node --check app.js
 python3 -m http.server 4173
 curl -fsS http://127.0.0.1:4173/ >/dev/null
-curl -fsS http://14.103.53.126/poster/ >/dev/null
+curl -fsS https://xhs.code89757.com/ >/dev/null
 ```
 
 界面变更还需手动验证：6 张示例的排版、6 种证据类型切换、截图拖动取景、6 套配色与两档深浅、海报 / 主页预览切换、已发布封面与 6 套配色对比，以及 1080 × 1440 PNG 导出。部署配置改动后必须先执行 `nginx -t`，成功后才能重载 Nginx。
@@ -157,8 +150,8 @@ curl -fsS http://14.103.53.126/poster/ >/dev/null
 | 尺寸能力 | 固定 3:4、1080 × 1440 | 适配小红书图文首图的竖版展示，减少无关配置 | 已确认 |
 | 改色范围 | 只能整套选配色，不提供逐项 HEX 调整 | 逐项改色只会破坏色系约束 | 已确认 |
 | 发布效果检查 | 双列主页预览可加载已发布快照、6 套配色或本地旧封面 | 在真实缩略图混排中判断识别度和协调度 | 已确认 |
-| 生产接入 | 复用 Nginx、HAProxy、Cloudflare DNS 和 Let's Encrypt | 不新增基础设施，降低运维成本 | 已确认 |
-| 临时公网入口 | 使用 `http://14.103.53.126/poster/` | 正式域名被备案校验阻断期间保持工具可用 | 临时方案 |
+| 生产接入 | 腾讯云静态站点，复用 Nginx、Cloudflare DNS 和 Let's Encrypt | 不新增基础设施，降低运维成本 | 已确认 |
+| 部署信息 | 服务器地址、登录方式、备份路径只写在本地 `docs/DEPLOYMENT.local.md` | 仓库公开，不暴露生产连接信息 | 已确认（2026-10-12） |
 
 2026-10-12 之前围绕旧版式的决策（模块开关、槽位、17 组配色、固定卡片外轮廓、照片区域缩放、字体预设、排版节奏等）已随旧版式一起替换，可在 Git 历史中查阅。
 
@@ -202,7 +195,5 @@ curl -fsS http://14.103.53.126/poster/ >/dev/null
 
 ## 7. 下一步
 
-1. 查询 `code89757.com` 当前备案状态：未备案则办理首次备案，已在其他接入商备案则办理火山引擎接入备案。
-2. 备案生效后恢复 `https://poster.code89757.com` 作为正式入口，保留或下线临时 IP 路径。
-3. 抽离布局和照片裁切计算为纯函数，使用 Node 内置测试覆盖海报与双列信息流缩略图。
-4. 为静态资源版本参数增加一个无依赖的发布前更新脚本，减少旧缓存导致的脚本错配。
+1. 抽离布局和截图裁切计算为纯函数，使用 Node 内置测试覆盖海报与双列信息流缩略图。
+2. 为静态资源版本参数增加一个无依赖的发布前更新脚本，减少旧缓存导致的脚本错配。
