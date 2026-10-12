@@ -275,6 +275,22 @@ curl -fsSI http://14.103.53.126/poster/assets/fonts/Yozai-Medium.ttf
 
 ## 7. 回滚
 
+### 腾讯云正式入口
+
+2026-10-12「实测笔记」版式上线（提交 `58fb567`）前，服务器完整备份在 `/var/backups/xhs-poster-studio-20261012-140215`，内容是此前的 10 月 6 日旧版式。回滚到旧版式：
+
+```shell
+ssh -i "$HOME/.ssh/mimi-push-provider" -o IdentitiesOnly=yes ubuntu@124.221.80.250 '
+set -eu
+sudo rsync -a --delete /var/backups/xhs-poster-studio-20261012-140215/ /var/www/xhs-poster-studio/
+'
+```
+
+纯静态回滚不需要重载 Nginx。
+
+### 火山引擎旧入口
+
+
 如果 IP 路径配置出现问题：
 
 ```shell
