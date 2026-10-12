@@ -4,10 +4,62 @@
 
 - 维持纯静态、无后端、低维护成本的部署方式。
 - 保证“编辑 → 预览 → 导出 PNG”的页面闭环可用。
-- 在正式域名备案问题解决前，通过 IP 路径提供临时访问。
+- 正式入口为腾讯云上的 `https://xhs.code89757.com`；火山引擎的 IP 路径保留为旧入口。
 - 修改 Nginx 时始终先备份、执行 `nginx -t`，验证成功后再重载。
 
 ## 2. 当前部署事实
+
+2026-09-11 迁到腾讯云。`code89757.com` 的 ICP 备案接入在腾讯云，子域名可以直接在这台服务器上提供 HTTPS，不再受火山引擎备案校验阻断。
+
+| 项目 | 当前值 |
+| --- | --- |
+| 服务器 | 腾讯云 CVM `124.221.80.250`（上海），Ubuntu 22.04 |
+| SSH | `ssh -i ~/.ssh/mimi-push-provider ubuntu@124.221.80.250`，改动需要 `sudo` |
+| 正式域名 | `https://xhs.code89757.com`（Cloudflare A 记录，DNS only） |
+| 静态文件目录 | `/var/www/xhs-poster-studio` |
+| Nginx 配置 | `/etc/nginx/conf.d/xhs-poster-studio.conf`，源文件 [deploy/nginx/xhs-code89757-tencent.conf](../deploy/nginx/xhs-code89757-tencent.conf) |
+| 证书 | Let's Encrypt `/etc/letsencrypt/live/xhs.code89757.com/`，webroot `/var/www/acme`，`certbot.timer` 自动续期 |
+| 同机服务 | 官网 `www.code89757.com`、`api.code89757.com` 等；只改本站配置，443 的 `listen` 参数不加 `http2` |
+
+服务器带宽只有 5Mbps。2026-10-12 起的「实测笔记」版式只用系统字体，页面不再加载 `Yozai-Medium.ttf`（约 15MB）；服务器上的旧字体与示例图保留不删，发布时也不再同步。
+
+### 腾讯云发布
+
+先按第 4 节做本地检查。服务器不能 root 直登，文件先传到临时目录，再用 `sudo` 备份并覆盖：
+
+```shell
+set -eu
+rsync -aR --checksum -e "ssh -i $HOME/.ssh/mimi-push-provider -o IdentitiesOnly=yes" \
+  index.html styles.css app.js README.md assets/published-covers.js \
+  ubuntu@124.221.80.250:/tmp/xhs-stage/
+ssh -i "$HOME/.ssh/mimi-push-provider" -o IdentitiesOnly=yes ubuntu@124.221.80.250 '
+set -eu
+backup=/var/backups/xhs-poster-studio-$(date +%Y%m%d-%H%M%S)
+sudo cp -a /var/www/xhs-poster-studio "$backup"
+sudo rsync -a /tmp/xhs-stage/ /var/www/xhs-poster-studio/ && rm -rf /tmp/xhs-stage
+sudo chown -R root:root /var/www/xhs-poster-studio
+sudo find /var/www/xhs-poster-studio -type d -exec chmod 755 {} +
+sudo find /var/www/xhs-poster-studio -type f -exec chmod 644 {} +
+echo "backup=$backup"
+'
+```
+
+纯静态文件更新不需要重载 Nginx。
+
+发布后验收：
+
+```shell
+curl -fsS https://xhs.code89757.com/ | grep -o 'app.js?v=[^"]*'
+curl -fsSI 'https://xhs.code89757.com/app.js?v=20261012-field-note' | head -1
+curl -fsSI 'https://xhs.code89757.com/styles.css?v=20261012-field-note' | head -1
+curl -fsSI 'https://xhs.code89757.com/assets/published-covers.js?v=20260806-2' | head -1
+```
+
+预期 HTML 引用 `app.js?v=20261012-field-note`，三个静态文件返回 `200`。界面验证按 [AGENTS.md](../AGENTS.md) 的浏览器验证清单执行。
+
+### 旧部署：火山引擎（保留 IP 入口）
+
+以下内容和第 3—7 节中指向 `14.103.53.126` 的命令，都只适用于火山引擎上的旧入口。
 
 | 项目 | 当前值 |
 | --- | --- |
@@ -16,13 +68,12 @@
 | 静态文件目录 | `/var/www/xhs-poster-studio` |
 | 临时访问地址 | `http://14.103.53.126/poster/` |
 | 裸 IP 行为 | `http://14.103.53.126` 跳转到 `/poster/` |
-| 正式域名 | `https://poster.code89757.com` |
-| 域名状态 | 已配置证书和站点，当前被火山引擎备案校验阻断 |
+| 旧域名 | `poster.code89757.com`，一直被火山引擎备案校验阻断；2026-09-11 已下线，由 `xhs.code89757.com` 取代 |
 | IP HTTP 配置 | `/etc/nginx/conf.d/chat-archive-ip-80.conf` |
-| 域名 HTTP 配置 | `/etc/nginx/conf.d/poster-code89757-edge-80.conf` |
-| 域名 HTTPS 配置 | `/etc/nginx/conf.d/poster-code89757-origin-https.conf` |
-| HAProxy 配置 | `/etc/haproxy/haproxy.cfg` |
-| Nginx 内部 HTTPS | `127.0.0.1:18445`，接收 PROXY protocol |
+| 已删除 | 域名站点 `poster-code89757-edge-80.conf`、`poster-code89757-origin-https.conf`；HAProxy 中 `poster.code89757.com` 的 SNI 分流和 `poster_code89757_https` 后端；Let's Encrypt 证书；Cloudflare DNS 记录 |
+| 下线备份 | 服务器 `/root/poster-takedown-20260911-232736`（HAProxy 原配置、两份 Nginx 配置、证书归档） |
+
+仓库里的 `deploy/nginx/poster-code89757-*.conf` 只作历史参考，第 3 节“正式域名入口”描述的也是已下线的链路。
 
 当前 IP 配置修改前的备份：
 
@@ -158,7 +209,7 @@ nginx -t
 
 ## 5. IP 路径配置
 
-仓库中的 [deploy/nginx/poster-ip-path.locations.snippet](./deploy/nginx/poster-ip-path.locations.snippet) 是添加到 IP HTTP `server {}` 内的配置片段，不是可以单独放入 `conf.d` 的完整配置。
+仓库中的 [deploy/nginx/poster-ip-path.locations.snippet](../deploy/nginx/poster-ip-path.locations.snippet) 是添加到 IP HTTP `server {}` 内的配置片段，不是可以单独放入 `conf.d` 的完整配置。
 
 修改生产配置前先备份：
 
