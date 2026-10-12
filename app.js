@@ -1,5 +1,9 @@
 "use strict";
 
+// ===== 运行环境适配层 =====
+// platform-web.js 或 platform-minitool.js 必须先于本文件加载，负责示例、存储、导出与发笔记。
+const PLATFORM = window.PosterPlatform || {};
+
 // ===== 画布基准 =====
 // 所有坐标都以小红书图文首图 1080 × 1440 为基准；预览、主页缩略图和导出共用同一次 Canvas 渲染。
 const STORAGE_KEY = "xhs-poster-studio:field-note:v1";
@@ -110,7 +114,7 @@ const BLANK_CONTENT = Object.freeze({
   titleText: "",
   pillsText: "",
   stampText: "",
-  footerText: "亲手测过才写｜CODEX · AGENT 实战",
+  footerText: PLATFORM.defaultFooter || "亲手测过才写｜实测笔记",
   evidenceLabel: "证据",
   evidenceType: "screenshot",
   stepsText: "",
@@ -126,111 +130,10 @@ const BLANK_CONTENT = Object.freeze({
   scheme: "rose",
 });
 
-// 示例全部取自已发布或已定时的笔记，便于直接对照真实效果。
-const EXAMPLES = Object.freeze([
-  {
-    id: "dot",
-    label: "评分 · dot 用了两天",
-    content: {
-      seriesText: "dot 使用记录 · 2026.10.11",
-      mainWord: "dot",
-      titleText: "用了两天\n我给【3 星半】",
-      pillsText: "重度使用 2 天\nCodex 接续\n多设备",
-      stampText: "还挺好用",
-      evidenceLabel: "证据 · 个人评分",
-      evidenceType: "rating",
-      ratingScore: "3.5",
-      ratingComment: "还挺好用\n有些功能没用顺",
-      ratingNote: "满分 5 星 · 两天真实使用后打分",
-      scheme: "rose",
-    },
-  },
-  {
-    id: "ipad",
-    label: "步骤 · iPad 接着用 Codex",
-    content: {
-      seriesText: "上手教程 · 2026.10.07",
-      mainWord: "iPad",
-      titleText: "接着用 Codex\n【我这样连】",
-      pillsText: "Mac 运行 Codex\niPad / iPhone 接续\nMimi Remote",
-      stampText: "4 步连上",
-      evidenceLabel: "证据 · 连接顺序",
-      evidenceType: "steps",
-      stepsText:
-        "电脑端先就绪｜Mac 上 Codex CLI 能运行，Mimi Remote Mac 服务就绪\n移动端配对｜按电脑端的配对提示完成连接\n找到已有会话｜从「会话」选任务，或从「工作区」按项目找\n先试一句，再继续｜确认能收到回复，再补充下一步要求",
-      scheme: "mint",
-    },
-  },
-  {
-    id: "luna",
-    label: "对比 · Sol + Luna 分工",
-    content: {
-      seriesText: "模型分工 · 2026.08.03",
-      mainWord: "Luna",
-      titleText: "降价 80% 后\n我这样【分工】",
-      pillsText: "主 Agent · Sol\n执行 · Luna Max\n路由 auto",
-      stampText: "别硬碰",
-      evidenceLabel: "证据 · 实际分工",
-      evidenceType: "compare",
-      compareLeft: "Sol｜主线程\n理解需求\n拆任务、做取舍\n处理风险\n最终验收",
-      compareRight: "Luna｜执行位\n代码搜索\n单点测试\n批量检查\n范围明确的 review",
-      evidenceNote: "Luna 做完 → Sol 必须自己验证",
-      scheme: "lime",
-    },
-  },
-  {
-    id: "v2",
-    label: "对比 · 多代理 V2",
-    content: {
-      seriesText: "版本解读 · 2026.08.17",
-      mainWord: "V2",
-      titleText: "Codex 多代理\n看得我【一头雾水】",
-      pillsText: "5 组 QA\n原作者答疑\n可委托 Luna",
-      stampText: "5 问讲清",
-      evidenceLabel: "证据 · 两级代理",
-      evidenceType: "compare",
-      compareLeft: "对等协作代理｜\n互发消息\n递归委托",
-      compareRight: "叶子子代理｜含 Luna\n可被委托\n不跨代理协作",
-      evidenceNote: "不会自动按任务选模型，要在提示里写明",
-      scheme: "sky",
-    },
-  },
-  {
-    id: "workbuddy",
-    label: "分层 · WorkBuddy 拆解",
-    content: {
-      seriesText: "拆解 · 2026.07.28",
-      mainWord: "393",
-      mainSuffix: "个专家",
-      titleText: "我用 Codex 拆了\n【WorkBuddy 专家】",
-      pillsText: "只读检查\n14 类专家\n拆成 4 层",
-      stampText: "顶好",
-      evidenceLabel: "证据 · 专家结构",
-      evidenceType: "rows",
-      rowsText:
-        "plugin.json｜专家卡片、名称\nagents/*.md｜角色、方法和流程\nskills/*/SKILL.md｜领域方法规则\n脚本与工具｜登录、搜索、写文件",
-      scheme: "lavender",
-    },
-  },
-  {
-    id: "quota",
-    label: "大字 · 额度没重置",
-    content: {
-      seriesText: "短状态 · 2026.07.18",
-      mainWord: "额度",
-      titleText: "Codex 快两天\n【没重置】了",
-      pillsText: "短状态记录\nCodex 额度",
-      stampText: "还在等",
-      evidenceLabel: "证据 · 当前状态",
-      evidenceType: "statement",
-      statementText: "额度还没重置",
-      statementNote: "记录于 2026.07.18 · 快两天",
-      scheme: "apricot",
-    },
-  },
-]);
+// 示例与默认页脚由运行环境适配层提供：网页版用账号真实笔记，小工具版用不含品牌名的中性示例。
+const EXAMPLES = Object.freeze(PLATFORM.examples || []);
 
-const PUBLISHED_COVER_SAMPLES = Object.freeze(globalThis.XHS_PUBLISHED_COVER_SAMPLES || []);
+const PUBLISHED_COVER_SAMPLES = Object.freeze(PLATFORM.publishedCovers || []);
 
 // ===== DOM =====
 const canvas = document.querySelector("#posterCanvas");
@@ -270,18 +173,16 @@ let contentBeforeExample = null;
 
 // ===== 状态 =====
 function defaultState() {
-  return {
-    ...BLANK_CONTENT,
-    ...EXAMPLES[0].content,
+  return Object.assign({}, BLANK_CONTENT, EXAMPLES.length ? EXAMPLES[0].content : {}, {
     tone: "cover",
     stickers: true,
     photoFocusX: 50,
     photoFocusY: 50,
-  };
+  });
 }
 
 function sanitizeState(source) {
-  const next = { ...source };
+  const next = Object.assign({}, source);
   if (!SCHEMES[next.scheme]) next.scheme = "rose";
   if (!["cover", "inner"].includes(next.tone)) next.tone = "cover";
   if (!EVIDENCE_IDS.includes(next.evidenceType)) next.evidenceType = "rating";
@@ -294,25 +195,39 @@ function sanitizeState(source) {
   return next;
 }
 
+function mergeSavedState(saved) {
+  return sanitizeState(Object.assign({}, defaultState(), saved && typeof saved === "object" ? saved : {}));
+}
+
+// 首帧先同步读取（网页版 localStorage）；小工具的容器存储是异步接口，读到后在 initialize 里再覆盖一次。
 function loadState() {
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    return sanitizeState({ ...defaultState(), ...(saved && typeof saved === "object" ? saved : {}) });
-  } catch {
+    const raw = PLATFORM.readStateSync ? PLATFORM.readStateSync(STORAGE_KEY) : null;
+    return mergeSavedState(raw ? JSON.parse(raw) : null);
+  } catch (error) {
     return defaultState();
   }
 }
 
+let persistTimer = 0;
+// 输入时每帧都会触发保存；合并成 300 ms 一次，避免小工具频繁调用异步存储接口。
 function persistState() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch {
-    // 隐私模式或存储已满时仍可继续编辑，只是刷新后不保留。
-  }
+  clearTimeout(persistTimer);
+  persistTimer = window.setTimeout(() => {
+    try {
+      if (PLATFORM.saveState) PLATFORM.saveState(STORAGE_KEY, JSON.stringify(state));
+    } catch (error) {
+      // 存储不可用或已满时仍可继续编辑，只是下次打开不保留。
+    }
+  }, 300);
 }
 
 function pickContent(source = state) {
-  return Object.fromEntries(CONTENT_KEYS.map((key) => [key, source[key]]));
+  const content = {};
+  CONTENT_KEYS.forEach((key) => {
+    content[key] = source[key];
+  });
+  return content;
 }
 
 // ===== 通用工具 =====
@@ -347,7 +262,7 @@ function getScheme(source = state) {
   const base = SCHEMES[source.scheme] || SCHEMES.rose;
   if (source.tone !== "cover") return base;
   // 只加深底色与底带；文字、主色和点缀色不变，保证两档之间仍是同一套配色。
-  return { ...base, bg: DEEP[base.bg] || base.bg, band: DEEP[base.band] || base.band };
+  return Object.assign({}, base, { bg: DEEP[base.bg] || base.bg, band: DEEP[base.band] || base.band });
 }
 
 function roundRectPath(ctx, x, y, width, height, radius) {
@@ -409,7 +324,7 @@ function drawPill(ctx, { x, y, text, size, family, weight, padX, height, bg, fg 
   return width;
 }
 
-// 标题里只有第一个【】会成为关键词胶囊，其余括号按普通文字处理。
+// 标题里只有首个【】会成为关键词胶囊，其余括号按普通文字处理。
 function parseTitle(text) {
   let keywordUsed = false;
   return splitLines(text)
@@ -998,7 +913,7 @@ function scheduleRender({ persist = true } = {}) {
 function syncTitleHint() {
   const lines = splitLines(state.titleText);
   const keyword = parseTitle(state.titleText)
-    .flat()
+    .reduce((all, segments) => all.concat(segments), [])
     .find((segment) => segment.keyword);
   const parts = [`${Math.min(lines.length, 2)} 行`];
   parts.push(keyword ? `关键词：${keyword.text}` : "还没有用【】标关键词");
@@ -1135,7 +1050,8 @@ function bindControls() {
     showToast("已恢复示例内容");
   });
 
-  document.querySelector("#downloadButton").addEventListener("click", downloadPoster);
+  document.querySelector("#exportButton").addEventListener("click", exportPoster);
+  document.querySelector("#postNoteButton").addEventListener("click", postNoteWithPoster);
 }
 
 // ===== 截图 =====
@@ -1151,7 +1067,7 @@ function clearScreenshot({ notify = true } = {}) {
 
 function bindScreenshot() {
   screenshotInput.addEventListener("change", () => {
-    const file = screenshotInput.files?.[0];
+    const file = screenshotInput.files && screenshotInput.files[0];
     screenshotInput.value = "";
     if (!file) return;
     if (!file.type.startsWith("image/") || file.size > MAX_PHOTO_BYTES) {
@@ -1191,7 +1107,7 @@ function toPosterPoint(event) {
 }
 
 function screenshotDraggable() {
-  return state.evidenceType === "screenshot" && uploadedPhoto && lastLayout?.evidenceArea;
+  return state.evidenceType === "screenshot" && uploadedPhoto && lastLayout && lastLayout.evidenceArea;
 }
 
 function insideArea(point, area) {
@@ -1218,7 +1134,12 @@ function bindScreenshotDrag() {
       overflowX: uploadedPhoto.naturalWidth * scale - area.w,
       overflowY: uploadedPhoto.naturalHeight * scale - area.h,
     };
-    canvas.setPointerCapture(event.pointerId);
+    // 部分 WebView 对触摸指针调用 setPointerCapture 会抛异常；捕获失败只影响拖出画布后的跟随，不影响取景。
+    try {
+      canvas.setPointerCapture(event.pointerId);
+    } catch (error) {
+      // 忽略，继续拖动。
+    }
     canvas.dataset.dragging = "true";
     event.preventDefault();
   });
@@ -1308,7 +1229,7 @@ function createSchemeCovers() {
   offscreen.height = H;
   const offscreenContext = offscreen.getContext("2d");
   return Object.entries(SCHEMES).map(([id, scheme]) => {
-    renderPoster(offscreenContext, { ...state, scheme: id, tone: "cover" }, uploadedPhoto);
+    renderPoster(offscreenContext, Object.assign({}, state, { scheme: id, tone: "cover" }), uploadedPhoto);
     return {
       id: `scheme-${id}`,
       source: "preset",
@@ -1358,7 +1279,7 @@ function renderHistoryCovers() {
   historyEmptyState.hidden = historyCovers.length > 0;
   clearHistoryButton.hidden = historyCovers.length === 0;
   if (!historyCovers.length) {
-    historyStatus.textContent = "可加载已发布封面、6 套配色或本地图片，不会保存或上传";
+    historyStatus.textContent = "可加载对比封面、6 套配色或本地图片，不会保存或上传";
     return;
   }
   const counts = historyCovers.reduce((summary, cover) => {
@@ -1375,7 +1296,7 @@ function bindHistoryPreview() {
       showToast("没有找到已发布封面快照");
       return;
     }
-    mergeHistoryCoverGroup("published", PUBLISHED_COVER_SAMPLES.map((cover) => ({ ...cover })));
+    mergeHistoryCoverGroup("published", PUBLISHED_COVER_SAMPLES.map((cover) => Object.assign({}, cover)));
     showToast(`已加载 ${PUBLISHED_COVER_SAMPLES.length} 张已发布封面`);
   });
 
@@ -1393,8 +1314,9 @@ function bindHistoryPreview() {
       showToast("请选择 20 MB 以内的 PNG、JPG 或 WebP");
       return;
     }
-    const results = await Promise.allSettled(files.map(createHistoryThumbnail));
-    const covers = results.filter((result) => result.status === "fulfilled").map((result) => result.value);
+    // Promise.allSettled 晚于 Chrome 61，单张失败改为返回 null 再过滤。
+    const results = await Promise.all(files.map((file) => createHistoryThumbnail(file).catch(() => null)));
+    const covers = results.filter(Boolean);
     mergeHistoryCoverGroup("upload", covers);
     showToast(`已加入 ${covers.length} 张本地封面`);
   });
@@ -1414,33 +1336,49 @@ function showToast(message) {
   toastTimer = window.setTimeout(() => toast.classList.remove("is-visible"), 2600);
 }
 
-function downloadPoster() {
-  lastLayout = renderPoster();
+function exportFileName() {
   const slug =
     state.mainWord
       .trim()
       .replace(/[^\w一-龥-]+/g, "-")
       .replace(/^-+|-+$/g, "")
       .toLowerCase() || "cover";
-  const tone = state.tone === "cover" ? "cover" : "inner";
-  canvas.toBlob((blob) => {
-    if (!blob) {
-      showToast("导出失败，请换一个浏览器重试");
-      return;
-    }
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `xhs-field-note-${slug}-${tone}.png`;
-    document.body.append(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-    showToast(`已导出 ${W} × ${H} PNG`);
-  }, "image/png");
+  return `xhs-field-note-${slug}-${state.tone === "cover" ? "cover" : "inner"}.png`;
+}
+
+// 导出方式由适配层决定：网页版导出 PNG 文件，小工具保存到系统相册。
+function exportPoster() {
+  lastLayout = renderPoster();
+  if (!PLATFORM.exportImage) {
+    showToast("当前环境不支持导出");
+    return;
+  }
+  PLATFORM.exportImage(canvas, exportFileName())
+    .then((message) => showToast(message))
+    .catch((error) => showToast((error && error.message) || "导出失败，请重试"));
+}
+
+// 小工具专用：带着当前封面打开小红书发笔记页面，标题预填为封面标题（最长 20 字）。
+function postNoteWithPoster() {
+  lastLayout = renderPoster();
+  PLATFORM.postNote(canvas, titlePlainText(state.titleText).slice(0, 20))
+    .then((message) => {
+      if (message) showToast(message);
+    })
+    .catch((error) => showToast((error && error.message) || "没能打开发笔记页面，请重试"));
+}
+
+function applyPlatformUi() {
+  const exportButton = document.querySelector("#exportButton");
+  if (PLATFORM.exportLabel) exportButton.textContent = PLATFORM.exportLabel;
+  const postNoteButton = document.querySelector("#postNoteButton");
+  postNoteButton.hidden = !PLATFORM.postNote;
+  loadPublishedCoversButton.hidden = !PUBLISHED_COVER_SAMPLES.length;
+  if (PLATFORM.exampleHint) document.querySelector("#exampleHint").textContent = PLATFORM.exampleHint;
 }
 
 function initialize() {
+  applyPlatformUi();
   buildPickers();
   syncControls();
   bindControls();
@@ -1454,7 +1392,19 @@ function initialize() {
   renderFeedPreview();
   syncCanvasCursor();
   // 系统字体通常已就绪；个别浏览器首次测量时字体还没准备好，就绪后补画一帧。
-  document.fonts?.ready.then(() => scheduleRender({ persist: false }));
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => scheduleRender({ persist: false }));
+  if (PLATFORM.loadStateAsync) {
+    PLATFORM.loadStateAsync(STORAGE_KEY)
+      .then((raw) => {
+        if (!raw) return;
+        state = mergeSavedState(JSON.parse(raw));
+        syncControls();
+        scheduleRender({ persist: false });
+      })
+      .catch(() => {
+        // 读不到时保留首帧状态，不打断编辑。
+      });
+  }
 }
 
 initialize();

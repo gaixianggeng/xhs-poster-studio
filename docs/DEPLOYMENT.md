@@ -45,7 +45,7 @@ trap - EXIT
 set -eu
 : "${DEPLOY_HOST:?}" "${DEPLOY_KEY:?}"
 rsync -aR --checksum -e "ssh -i $DEPLOY_KEY -o IdentitiesOnly=yes" \
-  index.html styles.css app.js README.md assets/published-covers.js \
+  index.html styles.css app.js platform-web.js README.md assets/published-covers.js \
   "$DEPLOY_HOST:/tmp/xhs-stage/"
 ssh -i "$DEPLOY_KEY" -o IdentitiesOnly=yes "$DEPLOY_HOST" '
 set -eu

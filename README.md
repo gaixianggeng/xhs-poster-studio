@@ -12,7 +12,9 @@
 
 | 路径 | 内容 |
 | --- | --- |
-| `index.html`、`styles.css`、`app.js` | 封面网站的页面、样式与 Canvas 逻辑 |
+| `index.html`、`styles.css`、`app.js` | 封面网站的页面、样式与 Canvas 逻辑（网页版与小工具版共用） |
+| `platform-web.js`、`platform-minitool.js` | 运行环境适配层：示例、存储、导出与发笔记 |
+| `scripts/build-minitool.sh` | 生成小红书小工具上传包 |
 | `assets/` | 主页对比封面快照；`fonts/` 与 `presets/` 为旧版式素材，当前版式不再引用 |
 | [docs/PROJECT_CONTEXT.md](./docs/PROJECT_CONTEXT.md) | 网站目标、范围与设计决策 |
 | [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)、`deploy/` | 网站部署说明与 Nginx 配置 |
@@ -50,6 +52,23 @@ python3 -m http.server 4173
 ```
 
 打开 `http://127.0.0.1:4173/`。
+
+## 小红书小工具版
+
+同一套页面可以打包成小红书「小工具」，挂在笔记上让读者在 App 里直接使用。
+
+```shell
+./scripts/build-minitool.sh
+```
+
+产物为 `dist/xhs-field-note-minitool.zip`（已加入 `.gitignore`）。与网页版的区别：
+
+- 用 `platform-minitool.js` 替换 `platform-web.js`，不加载已发布封面快照。
+- 示例改为不含品牌名的中性内容，覆盖 6 种证据类型。
+- 「导出 PNG」改为「保存到相册」，另有「去发笔记」：调用容器的 `writeTempFile`、`saveImageToPhotosAlbum` 和 `postNote`。
+- 客户端 9.46 及以上用容器 Storage API 保存文案，低版本退回浏览器存储。
+
+页面、样式和脚本按小工具要求的 Android 8.1 出厂 WebView（Chrome 61）基线编写：JS 不超出 ES2017，CSS 不依赖 Flex `gap`、`aspect-ratio`、`min()`、`inset`、`dvh` 等新能力。上传前用官方 `minitool-zip-builder` 的审计脚本检查 zip；上传后先在创服平台模拟器验证，再用 Android 和 iOS 真机扫码验证。
 
 ## 线上部署
 

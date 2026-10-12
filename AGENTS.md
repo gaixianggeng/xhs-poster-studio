@@ -18,6 +18,9 @@
 ## 技术栈与实现原则
 
 - 沿用原生 HTML、CSS、JavaScript 和 Canvas，不引入框架、构建工具或运行时依赖。
+- 网页版与小红书小工具版共用 `index.html`、`styles.css`、`app.js`；环境差异只放在 `platform-web.js` / `platform-minitool.js`。
+- 共用代码按 Chrome 61 / ES2017 基线编写：不用可选链、空值合并、对象展开、可选 catch 绑定，不依赖 Flex `gap`、`aspect-ratio`、`min()`、`inset`、`dvh`。
+- 小工具包内不得出现下载链接、外部地址、网络请求和品牌名示例；修改后运行 `./scripts/build-minitool.sh` 并用官方审计脚本检查。
 - 状态只存放在浏览器 `localStorage`，不得上传用户文案或生成图片。
 - 预览与导出必须复用同一个 Canvas 渲染逻辑，避免结果不一致。
 - 修改排版逻辑时，同时验证 1080 × 1440 海报预览、双列信息流预览和 PNG 导出。

@@ -11,7 +11,7 @@
       content="零依赖的小红书 3:4 实测笔记封面生成器：固定骨架、6 套配色、主页双列预览和高清导出。"
     />
     <title>小红书封面生成器</title>
-    <link rel="stylesheet" href="./styles.css?v=20261012-field-note" />
+    <link rel="stylesheet" href="./styles.css?v=20261012-minitool" />
   </head>
   <body>
     <a class="skip-link" href="#mainWorkspace">跳到编辑区</a>
@@ -26,7 +26,8 @@
         </div>
         <div class="header-actions">
           <button class="button button-secondary" id="resetButton" type="button">恢复示例</button>
-          <button class="button button-primary" id="downloadButton" type="button">导出 PNG</button>
+          <button class="button button-secondary" id="postNoteButton" type="button" hidden>去发笔记</button>
+          <button class="button button-primary" id="exportButton" type="button">导出 PNG</button>
         </div>
       </header>
 
@@ -37,7 +38,7 @@
               <span class="step">00</span>
               <div>
                 <h2>从示例开始</h2>
-                <p>6 张示例覆盖评分、步骤、对比、分层、大字 5 种证据；截图类型直接上传自己的图。载入会整体替换当前文案，可以撤回。</p>
+                <p id="exampleHint">载入示例会整体替换当前文案，可以撤回。</p>
               </div>
             </div>
             <div class="example-row">
@@ -55,7 +56,7 @@
               <span class="step">01</span>
               <div>
                 <h2>写文案</h2>
-                <p>标题最多两行，用【】标出唯一的关键词，它会放进主色胶囊。</p>
+                <p>标题最多两行，用【】标出一个关键词，它会放进主色胶囊。</p>
               </div>
             </div>
 
@@ -93,7 +94,7 @@
 
             <div class="field-grid field-grid-two">
               <label class="field">
-                <span><b>结论章</b><small>一句话，2–5 个字最好；留空不显示</small></span>
+                <span><b>结论章</b><small>一句话，建议 2–5 个字；留空不显示</small></span>
                 <input id="stampText" type="text" placeholder="可留空" />
               </label>
               <label class="field">
@@ -279,7 +280,7 @@
               <div>
                 <strong>放进真实主页里检查</strong>
                 <span id="historyStatus" aria-live="polite"
-                  >可加载已发布封面、6 套配色或本地图片，不会保存或上传</span
+                  >可加载对比封面、6 套配色或本地图片，不会保存或上传</span
                 >
               </div>
               <div class="history-preview-actions">
@@ -314,18 +315,21 @@
                 </article>
                 <article class="feed-empty-state" id="historyEmptyState">
                   <strong>当前只展示正在编辑的封面</strong>
-                  <span>加载已发布封面或 6 套配色后，可以直接判断主页是否协调。</span>
+                  <span>加载对比封面或 6 套配色后，可以直接判断主页是否协调。</span>
                 </article>
               </div>
             </div>
           </div>
-          <p class="preview-note">所有设置只保存在当前浏览器，不会上传文案或图片。</p>
+          <p class="preview-note">所有内容只保存在本机，不会上传文案或图片。</p>
         </section>
       </main>
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <!-- platform:web 小工具打包时，这一段会被替换为 platform-minitool.js -->
     <script src="./assets/published-covers.js?v=20260806-2" defer></script>
-    <script src="./app.js?v=20261012-field-note" defer></script>
+    <script src="./platform-web.js?v=20261012-minitool" defer></script>
+    <!-- /platform:web -->
+    <script src="./app.js?v=20261012-minitool" defer></script>
   </body>
 </html>
